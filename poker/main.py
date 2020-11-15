@@ -115,6 +115,7 @@ class ThreadManager(threading.Thread):
     #                                                 t.maxEquityCall, t.max_X, t.maxEquityBet)
 
     def update_most_gui_items(self, preflop_state, p, t, h, gui_signals):
+        self.time_update_ui_start = datetime.datetime.utcnow()
         try:
             sheet_name = t.preflop_sheet_name
         except:
@@ -176,7 +177,7 @@ class ThreadManager(threading.Thread):
         #                                             t.smallBlind, t.bigBlind,
         #                                             t.maxValue_call, t.maxValue_bet,
         #                                             t.maxEquityCall, t.max_X, t.maxEquityBet)
-
+        self.time_update_ui_end = datetime.datetime.utcnow()
 
     def run(self):
         log = logging.getLogger(__name__)
@@ -274,6 +275,7 @@ class ThreadManager(threading.Thread):
                 log.info(f"time to other player funds: {t.time_other_funds - t.time_other_funds_start}")
                 log.info(f"time to other player pots: {t.time_other_pots_end - t.time_other_pots_start}")
                 log.info(f"time to new hands : {t.time_new_hand_end - t.time_new_hand_start}")
+                log.info(f"time to update UI {self.time_update_ui_end - self.time_update_ui_start}")
                 log.info(f"time to total record: {t.time_action_completed - t.timeout_start}")
 
                 filename = str(h.GameID) + "_" + str(t.gameStage) + "_" + str(h.round_number) + ".png"
