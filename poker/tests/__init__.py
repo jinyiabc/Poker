@@ -17,7 +17,7 @@ sys.path.insert(0,parentdir)
 from poker import main
 
 
-def init_table(file,round_number=0, strategy='Default1'):
+def init_table(file,round_number=0, strategy='Default'):
     LOG_FILENAME = 'testing.log'
     logger = logging.getLogger('tester')
     gui_signals = MagicMock()
@@ -28,9 +28,9 @@ def init_table(file,round_number=0, strategy='Default1'):
     cursor = u.mongodb.internal.find()
     c = cursor.next()
     preflop_url = c['preflop_url']
-    h.preflop_sheet = pd.read_excel(preflop_url, sheetname=None)
+    h.preflop_sheet = pd.read_excel(preflop_url, sheet_name=None)
     game_logger = GameLogger()
-    t = main.TableScreenBased(p, gui_signals, game_logger, 0.0)
+    t = main.TableScreenBased(p, 'GG_TEST1', gui_signals, game_logger, 4.21)
     t.entireScreenPIL = Image.open(file)
     t.get_top_left_corner(p)
     t.get_dealer_position()

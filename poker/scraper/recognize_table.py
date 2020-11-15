@@ -2,9 +2,9 @@
 import logging
 
 from poker.scraper.screen_operations import take_screenshot, crop_screenshot_with_topleft_corner, \
-    is_template_in_search_area, binary_pil_to_cv2, ocr
+    is_template_in_search_area, binary_pil_to_cv2, ocr, pil_to_cv2
 from poker.scraper.table_setup import CARD_SUITES, CARD_VALUES
-
+from poker.scraper.board import watchAndDisplayCards
 log = logging.getLogger(__name__)
 
 
@@ -52,28 +52,52 @@ class TableScraper:
     def get_my_cards2(self):
         """Get my cards"""
         self.my_cards = []
-        for value in CARD_VALUES:
-            for suit in CARD_SUITES:
-                if is_template_in_search_area(self.table_dict, self.screenshot,
-                                              value.lower() + suit.lower(), 'my_cards_area'):
-                    self.my_cards.append(value + suit)
+        # for value in CARD_VALUES:
+        #     for suit in CARD_SUITES:
+        #         if is_template_in_search_area(self.table_dict, self.screenshot,
+        #                                       value.lower() + suit.lower(), 'my_cards_area'):
+        #             self.my_cards.append(value + suit)
+        image_area = 'my_cards_area'  # 'my_cards_area'   #
 
-        if len(self.my_cards) != 2:
-            log.warning("My cards not recognized")
+        search_area = self.table_dict[image_area]
+        cropped_screenshot = self.screenshot.crop(
+            (search_area['x1'], search_area['y1'], search_area['x2'], search_area['y2']))
+
+        cropped_screenshot = pil_to_cv2(cropped_screenshot)
+        cardsFound, allValueMatches = watchAndDisplayCards(cropped_screenshot, image_area)
+        self.my_cards = list(cardsFound)
+
+        # if len(self.my_cards) != 2:
+        #     if len(self.my_cards) == 1:
+        #         self.screenshot.save("pics/ErrMyCardRecognize.png")
+        #         assert len(self.my_cards) != 1, "My cards can never be 1"
+        #     log.info("My cards are not recognized")
         log.info(f"My cards: {self.my_cards}")
         return True
 
     def get_table_cards2(self):
         """Get the cards on the table"""
         self.table_cards = []
-        for value in CARD_VALUES:
-            for suit in CARD_SUITES:
-                if is_template_in_search_area(self.table_dict, self.screenshot,
-                                              value.lower() + suit.lower(), 'table_cards_area'):
-                    self.table_cards.append(value + suit)
+        # for value in CARD_VALUES:
+        #     for suit in CARD_SUITES:
+        #         if is_template_in_search_area(self.table_dict, self.screenshot,
+        #                                       value.lower() + suit.lower(), 'table_cards_area'):
+        #             self.table_cards.append(value + suit)
+        image_area = 'table_cards_area'  # 'my_cards_area'   #
+
+        search_area = self.table_dict[image_area]
+        cropped_screenshot = self.screenshot.crop(
+            (search_area['x1'], search_area['y1'], search_area['x2'], search_area['y2']))
+
+        cropped_screenshot = pil_to_cv2(cropped_screenshot)
+        cardsFound, allValueMatches = watchAndDisplayCards(cropped_screenshot, image_area)
+        self.table_cards = list(cardsFound)
+
         log.info(f"Table cards: {self.table_cards}")
-        assert len(self.table_cards) != 1, "Table cards can never be 1"
-        assert len(self.table_cards) != 2, "Table cards can never be 2"
+        if len(self.table_cards) == 1 or len(self.table_cards) == 2:
+            self.screenshot.save("pics/ErrTableCardRecognize.png")
+        # assert len(self.table_cards) != 1, "Table cards can never be 1"
+        # assert len(self.table_cards) != 2, "Table cards can never be 2"
         return True
 
     def get_dealer_position2(self):
@@ -206,5 +230,5 @@ class TableScraper:
     def get_game_number_on_screen2(self):
         """Game number"""
         self.game_number = ocr(self.screenshot, 'game_number', self.table_dict)
-        log.debug(f"Game number: {self.game_number}")
+        log.info(f"Game number: {self.game_number}")
         return self.game_number

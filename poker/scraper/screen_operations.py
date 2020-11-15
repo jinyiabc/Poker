@@ -10,6 +10,7 @@ from pytesseract import pytesseract
 from poker.tools.helper import memory_cache
 from poker.tools.mongo_manager import MongoManager
 from poker.tools.vbox_manager import VirtualBoxController
+import matplotlib.pyplot as plt
 
 log = logging.getLogger(__name__)
 
@@ -61,56 +62,90 @@ def get_table_template_image(table_name='default', label='topleft_corner'):
     return template_cv2
 
 
+# def get_ocr_float(img_orig, name=None, big_blind=0.02, binarize=False):
+#     def binarize_array(image, threshold=200):
+#         """Binarize a numpy array."""
+#         numpy_array = np.array(image)
+#         for i in range(len(numpy_array)):
+#             for j in range(len(numpy_array[0])):
+#                 if numpy_array[i][j] > threshold:
+#                     numpy_array[i][j] = 255
+#                 else:
+#                     numpy_array[i][j] = 0
+#         return Image.fromarray(numpy_array)
+#
+#     lst = []
+#     basewidth = 300
+#     wpercent = (basewidth / float(img_orig.size[0]))
+#     hsize = int((float(img_orig.size[1]) * float(wpercent)))
+#     img_resized = img_orig.convert('L').resize((basewidth, hsize), Image.ANTIALIAS)
+#     if binarize:
+#         img_resized = binarize_array(img_resized, 200)
+#
+#     img_min = img_resized.filter(ImageFilter.MinFilter)
+#     img_mod = img_resized.filter(ImageFilter.ModeFilter)
+#     img_med = img_resized.filter(ImageFilter.MedianFilter)
+#     img_sharp = img_resized.filter(ImageFilter.SHARPEN)
+#
+#     lst.append(
+#         pytesseract.image_to_string(img_min, 'eng', config='--psm 6 --oem 1 -c tessedit_char_whitelist=0123456789.$£B').
+#             replace('$', '').
+#             replace('£', ''))
+#
+#     if lst[0] == '' or lst[0] == '.':
+#         lst.append(
+#             pytesseract.image_to_string(img_mod, 'eng',
+#                                         config='--psm 6 --oem 1 -c tessedit_char_whitelist=0123456789.$£B').
+#                 replace('$', '').
+#                 replace('£', ''))
+#
+#         if lst[1] == '' or lst[1] == '.':
+#             lst.append(
+#                 pytesseract.image_to_string(img_med, 'eng',
+#                                             config='--psm 6 --oem 1 -c tessedit_char_whitelist=0123456789.$£B').
+#                     replace('$', '').
+#                     replace('£', ''))
+#             if lst[2] == '' or lst[2] == '.':
+#                 lst.append(
+#                     pytesseract.image_to_string(img_sharp, 'eng',
+#                                                 config='--psm 6 --oem 1 -c tessedit_char_whitelist=0123456789.$£B').
+#                         replace('$', '').
+#                         replace('£', ''))
+#     # log.debug(lst)
+#     log.info(lst)
+#     for element in lst:
+#         if element != '':
+#             if 'B' in element:
+#                 element = element.replace('B', '')
+#                 try:
+#                     element = float(element) * big_blind
+#                 except:
+#                     element = 0
+#             final_element = ''
+#             allow_dot = True
+#             for char in str(element):
+#                 if char == '.' and not allow_dot:
+#                     continue
+#                 final_element = final_element + char
+#                 if char == '.':
+#                     allow_dot = False
+#             try:
+#                 final_value = float(final_element)
+#             except:
+#                 final_value = ""
+#             return final_value
+#
+#     return ''
+
 def get_ocr_float(img_orig, name=None, big_blind=0.02, binarize=False):
-    def binarize_array(image, threshold=200):
-        """Binarize a numpy array."""
-        numpy_array = np.array(image)
-        for i in range(len(numpy_array)):
-            for j in range(len(numpy_array[0])):
-                if numpy_array[i][j] > threshold:
-                    numpy_array[i][j] = 255
-                else:
-                    numpy_array[i][j] = 0
-        return Image.fromarray(numpy_array)
-
     lst = []
-    basewidth = 300
-    wpercent = (basewidth / float(img_orig.size[0]))
-    hsize = int((float(img_orig.size[1]) * float(wpercent)))
-    img_resized = img_orig.convert('L').resize((basewidth, hsize), Image.ANTIALIAS)
-    if binarize:
-        img_resized = binarize_array(img_resized, 200)
-
-    img_min = img_resized.filter(ImageFilter.MinFilter)
-    img_mod = img_resized.filter(ImageFilter.ModeFilter)
-    img_med = img_resized.filter(ImageFilter.MedianFilter)
-    img_sharp = img_resized.filter(ImageFilter.SHARPEN)
-
-    lst.append(
-        pytesseract.image_to_string(img_min, 'eng', config='--psm 6 --oem 1 -c tessedit_char_whitelist=0123456789.$£B').
-            replace('$', '').
-            replace('£', ''))
-
-    if lst[0] == '' or lst[0] == '.':
-        lst.append(
-            pytesseract.image_to_string(img_mod, 'eng',
-                                        config='--psm 6 --oem 1 -c tessedit_char_whitelist=0123456789.$£B').
-                replace('$', '').
-                replace('£', ''))
-
-        if lst[1] == '' or lst[1] == '.':
-            lst.append(
-                pytesseract.image_to_string(img_med, 'eng',
-                                            config='--psm 6 --oem 1 -c tessedit_char_whitelist=0123456789.$£B').
-                    replace('$', '').
-                    replace('£', ''))
-            if lst[2] == '' or lst[2] == '.':
-                lst.append(
-                    pytesseract.image_to_string(img_sharp, 'eng',
-                                                config='--psm 6 --oem 1 -c tessedit_char_whitelist=0123456789.$£B').
-                        replace('$', '').
-                        replace('£', ''))
-    log.debug(lst)
+    img_orig = pil_to_cv2(img_orig)
+    gray = cv2.cvtColor(img_orig, cv2.COLOR_BGR2GRAY)
+    gray = cv2.threshold(gray, 0, 255,
+                         cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
+    custom_config = r'-c tessedit_char_whitelist=0123456789.$ --psm 6'
+    lst.append(pytesseract.image_to_string(gray, config=custom_config).replace('$', '').strip())
+    log.info(lst)
     for element in lst:
         if element != '':
             if 'B' in element:
@@ -158,7 +193,7 @@ def get_ocr_float(img_orig, name=None, big_blind=0.02, binarize=False):
 #         except:
 #             final_value = 0
 #
-#     return final_valuev
+#     return final_value
 
 
 def take_screenshot(virtual_box=False):
@@ -229,8 +264,15 @@ def is_template_in_search_area(table_dict, screenshot, image_name, image_area, p
         search_area = table_dict[image_area][player]
     else:
         search_area = table_dict[image_area]
-    return check_if_image_in_range(template_cv2, screenshot,
-                                   search_area['x1'], search_area['y1'], search_area['x2'], search_area['y2'])
+    if image_name == 'dealer_button':
+        cropped_screenshot = screenshot.crop(
+            (search_area['x1'], search_area['y1'], search_area['x2'], search_area['y2']))
+        cropped_screenshot = pil_to_cv2(cropped_screenshot)
+        count, points, bestfit, minimum_value = find_template_on_screen(template_cv2, cropped_screenshot, 0.15)
+        return count >= 1
+    else:
+        return check_if_image_in_range(template_cv2, screenshot,
+                                       search_area['x1'], search_area['y1'], search_area['x2'], search_area['y2'])
 
 
 def ocr(screenshot, image_area, table_dict, player=None):

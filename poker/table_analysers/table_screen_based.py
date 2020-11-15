@@ -14,7 +14,7 @@ from PIL import Image
 from poker.decisionmaker.montecarlo_python import MonteCarlo
 from .base import Table
 from ..scraper.recognize_table import TableScraper
-
+from poker.tools.helper import FullRandom
 log = logging.getLogger(__name__)
 
 
@@ -148,6 +148,8 @@ class TableScreenBased(Table):
             self.gameStage = "Turn"
         elif len(self.cardsOnTable) == 5:
             self.gameStage = "River"
+        elif len(self.cardsOnTable) == 1 or 2:
+            return False
 
         if self.gameStage == '':
             log.critical("Table cards not recognised correctly: " + str(len(self.cardsOnTable)))
@@ -248,7 +250,7 @@ class TableScreenBased(Table):
         other_player['pot'] = ''
         other_player['decision'] = ''
         self.other_players = []
-        for i in range(self.total_players - 1):
+        for i in range(self.total_players-1):
             self.gui_signals.signal_status.emit(f"Check other players {i}")
             self.gui_signals.signal_progressbar_increase.emit(1)
             op = copy(other_player)
@@ -281,12 +283,13 @@ class TableScreenBased(Table):
 
     def get_other_player_funds(self, p):
         if p.selected_strategy['gather_player_names'] == 1:
+            self.get_players_funds()
             for i in range(1, self.total_players):
                 self.gui_signals.signal_status.emit(f"Check other players funds {i}")
                 self.gui_signals.signal_progressbar_increase.emit(1)
                 value = self.player_funds[i]
                 value = float(value) if value != '' else ''
-                self.other_players[i]['funds'] = value
+                self.other_players[i-1]['funds'] = value
 
         return True
 
@@ -335,12 +338,12 @@ class TableScreenBased(Table):
         for i in range(1, self.total_players):
             if i in self.players_in_game:
                 self.covered_players += 1
-                self.other_players[i - 1]['status'] = 1
+                self.other_players[i-1]['status'] = 1
             else:
-                self.other_players[i - 1]['status'] = 0
+                self.other_players[i-1]['status'] = 0
 
-            self.other_players[i - 1]['utg_position'] = self.get_utg_from_abs_pos(
-                self.other_players[i - 1]['abs_position'],
+            self.other_players[i-1]['utg_position'] = self.get_utg_from_abs_pos(
+                self.other_players[i-1]['abs_position'],
                 self.dealer_position)
 
         self.other_active_players = sum([v['status'] for v in self.other_players])
@@ -596,18 +599,60 @@ class TableScreenBased(Table):
             self.get_my_funds(h, p)
 
         return True
+    def get_new_hand2(self, h, p):
+        self.gui_signals.signal_status.emit(f"Check if new hand")
+        self.gui_signals.signal_progressbar_increase.emit(1)
+        self.gui_signals.signal_progressbar_increase.emit(5)
+        if h.previousCards != self.mycards:
+            log.info("+++========================== NEW HAND ==========================+++")
+            self.time_new_cards_recognised = datetime.datetime.utcnow()
+            self.get_my_funds(h, p)
+
+            h.lastGameID = str(h.GameID)
+            h.GameID = int(round(np.random.uniform(0, 999999999), 0))
+            self.get_game_number_on_screen(h)
+            cards = ' '.join(self.mycards)
+            self.gui_signals.signal_status.emit("New hand: " + str(cards))
+
+            if not len(h.myFundsHistory) == 0:
+                self.myFundsChange = float(self.myFunds) - float(h.myFundsHistory[-1])
+                self.game_logger.mark_last_game(self, h, p)
+
+            t_algo = threading.Thread(name='Algo', target=self.call_genetic_algorithm, args=(p,))
+            t_algo.daemon = True
+            t_algo.start()
+
+            self.gui_signals.signal_funds_chart_update.emit(self.game_logger)
+            self.gui_signals.signal_bar_chart_update.emit(self.game_logger, p.current_strategy)
+
+            h.myLastBet = 0
+            h.myFundsHistory.append(self.myFunds)
+            h.previousCards = self.mycards
+            h.lastSecondRoundAdjustment = 0
+            h.last_round_bluff = False  # reset the bluffing marker
+            h.round_number = 0
+
+            # mouse.move_mouse_away_from_buttons_jump()
+            self.take_screenshot(False, p)
+        else:
+            log.debug("Game number on screen: " + str(h.game_number_on_screen))
+            self.get_my_funds(h, p)
+
+        return True
 
     def upload_collusion_wrapper(self, p, h):
         if not (h.GameID, self.gameStage) in h.uploader:
             h.uploader[(h.GameID, self.gameStage)] = True
+            h.game_number_on_screen = h.GameID
             self.game_logger.upload_collusion_data(h.game_number_on_screen, self.mycards, p, self.gameStage)
         return True
 
     def get_game_number_on_screen(self, h):
 
-        self.Game_Number = self.get_game_number_on_screen2()
+        # fr = FullRandom()
+        # self.Game_Number = fr.random()  #self.get_game_number_on_screen2()
 
-        h.game_number_on_screen = self.Game_Number
+        self.Game_Number  = h.GameID
 
         log.debug("Game Number: " + str(self.Game_Number))
 

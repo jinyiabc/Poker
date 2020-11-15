@@ -140,7 +140,8 @@ class StrategyHandler(object):
 
     def read_strategy(self, strategy_override=''):
         config = ConfigObj("config.ini")
-        last_strategy = config['last_strategy']
+        #last_strategy = config['last_strategy']
+        last_strategy = 'Default'
         self.current_strategy = last_strategy if strategy_override == '' else strategy_override
         try:
             cursor = self.mongodb.strategies.find({'Strategy': self.current_strategy})
@@ -679,9 +680,10 @@ class MongoManager(metaclass=Singleton):
         """Initialize connection as singleton"""
         # login = config.get('Mongo', 'login')
         # password = config.get('Mongo', 'password')
-        self.client = MongoClient(f'mongodb://neuron_poker:donald@dickreuter.com/neuron_poker')
+        # self.client = MongoClient(f'mongodb://neuron_poker:donald@dickreuter.com/neuron_poker')
+        # self.db = self.client['neuron_poker']
+        self.client = MongoClient('localhost', 27017)
         self.db = self.client['neuron_poker']
-
     def upload_dataframe(self, df, collection_name):
         """updload df to mongodb"""
         self.db[collection_name].insert_many(df.to_dict('records'))

@@ -351,9 +351,10 @@ class TableSetupActionAndSignals(QObject):
         table_scraper.get_players_in_game()
         table_scraper.get_pots()
         table_scraper.get_players_funds()
+        table_scraper.get_player_pots()
         table_scraper.get_call_value()
         table_scraper.get_raise_value()
-        table_scraper.has_all_in_call_button()
+        # table_scraper.has_all_in_call_button()
         table_scraper.has_call_button()
         table_scraper.has_raise_button()
 

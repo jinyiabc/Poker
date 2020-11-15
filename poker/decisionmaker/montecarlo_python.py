@@ -217,7 +217,7 @@ class MonteCarlo(object):
 
     def calc_score(self, hand):  # assign a calc_score to the hand so it can be compared with other hands
         card_ranks_original = '23456789TJQKA'
-        original_suits = 'CDHS'
+        original_suits = 'cdhs'
         rcounts = {card_ranks_original.find(r): ''.join(hand).count(r) for r, _ in hand}.items()
         score, card_ranks = zip(*sorted((cnt, rank) for rank, cnt in rcounts)[::-1])
 
@@ -315,7 +315,7 @@ class MonteCarlo(object):
 
     def create_card_deck(self):
         values = "23456789TJQKA"
-        suites = "CDHS"
+        suites = "cdhs"
         Deck = []
         [Deck.append(x + y) for x in values for y in suites]
         return Deck
