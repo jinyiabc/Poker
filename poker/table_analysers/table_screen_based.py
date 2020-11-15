@@ -135,6 +135,7 @@ class TableScreenBased(Table):
         return True
 
     def get_table_cards(self, h):
+        self.time_table_cards_start = datetime.datetime.utcnow()
         self.get_table_cards2()
         self.cardsOnTable = self.table_cards
 
@@ -161,7 +162,7 @@ class TableScreenBased(Table):
         log.info("---")
 
         self.max_X = 1 if self.gameStage != 'PreFlop' else 0.86
-
+        self.time_table_cards_end = datetime.datetime.utcnow()
         return True
 
     def check_fast_fold(self, h, p, mouse):
@@ -196,10 +197,12 @@ class TableScreenBased(Table):
         return True
 
     def get_my_cards(self, h):
+        self.time_my_cards_start = datetime.datetime.utcnow()
         self.get_my_cards2()
         self.mycards = self.my_cards
 
         if len(self.mycards) == 2:
+            self.time_my_cards_end = datetime.datetime.utcnow()
             return True
         else:
             log.debug("Did not find two player cards: " + str(self.mycards))
@@ -282,6 +285,7 @@ class TableScreenBased(Table):
         return True
 
     def get_other_player_funds(self, p):
+        self.time_other_funds_start = datetime.datetime.utcnow()
         if p.selected_strategy['gather_player_names'] == 1:
             self.get_players_funds()
             for i in range(1, self.total_players):
@@ -290,10 +294,11 @@ class TableScreenBased(Table):
                 value = self.player_funds[i]
                 value = float(value) if value != '' else ''
                 self.other_players[i-1]['funds'] = value
-
+        self.time_other_funds = datetime.datetime.utcnow()
         return True
 
     def get_other_player_pots(self):
+        self.time_other_pots_start = datetime.datetime.utcnow()
         self.gui_signals.signal_status.emit(f"Get table pots")
         self.gui_signals.signal_progressbar_increase.emit(2)
         self.get_pots()
@@ -311,7 +316,7 @@ class TableScreenBased(Table):
                     self.other_players[n - 1]['pot'] = 0
 
                 log.debug("FINAL POT after regex: " + str(self.other_players[n - 1]))
-
+        self.time_other_pots_end = datetime.datetime.utcnow()
         return True
 
     def get_bot_pot(self, p):
@@ -600,6 +605,7 @@ class TableScreenBased(Table):
 
         return True
     def get_new_hand2(self, h, p):
+        self.time_new_hand_start = datetime.datetime.utcnow()
         self.gui_signals.signal_status.emit(f"Check if new hand")
         self.gui_signals.signal_progressbar_increase.emit(1)
         self.gui_signals.signal_progressbar_increase.emit(5)
@@ -637,7 +643,7 @@ class TableScreenBased(Table):
         else:
             log.debug("Game number on screen: " + str(h.game_number_on_screen))
             self.get_my_funds(h, p)
-
+        self.time_new_hand_end = datetime.datetime.utcnow()
         return True
 
     def upload_collusion_wrapper(self, p, h):

@@ -51,13 +51,76 @@ class ThreadManager(threading.Thread):
 
         self.game_logger = GameLogger()
 
-    def update_most_gui_items(self, preflop_state, p, m, t, d, h, gui_signals):
+    # def update_most_gui_items(self, preflop_state, p, m, t, d, h, gui_signals):
+    #     try:
+    #         sheet_name = t.preflop_sheet_name
+    #     except:
+    #         sheet_name = ''
+    #     gui_signals.signal_decision.emit(str(d.decision + " " + sheet_name))
+    #     gui_signals.signal_status.emit(d.decision)
+    #     range2 = ''
+    #     if hasattr(t, 'reverse_sheet_name'):
+    #         range = t.reverse_sheet_name
+    #         if hasattr(preflop_state, 'range_column_name'):
+    #             range2 = " " + preflop_state.range_column_name + ""
+    #
+    #     else:
+    #         range = str(m.opponent_range)
+    #     if range == '1': range = 'All cards'
+    #
+    #     if t.gameStage != 'PreFlop' and p.selected_strategy['preflop_override']:
+    #         sheet_name = preflop_state.preflop_sheet_name
+    #
+    #     gui_signals.signal_label_number_update.emit('equity', str(np.round(t.abs_equity * 100, 2)) + "%")
+    #     gui_signals.signal_label_number_update.emit('required_minbet', str(np.round(t.minBet, 2)))
+    #     gui_signals.signal_label_number_update.emit('required_mincall', str(np.round(t.minCall, 2)))
+    #     # gui_signals.signal_lcd_number_update.emit('potsize', t.totalPotValue)
+    #     gui_signals.signal_label_number_update.emit('gamenumber',
+    #                                                 str(int(self.game_logger.get_game_count(p.current_strategy))))
+    #     gui_signals.signal_label_number_update.emit('assumed_players', str(int(t.assumedPlayers)))
+    #     gui_signals.signal_label_number_update.emit('calllimit', str(np.round(d.finalCallLimit, 2)))
+    #     gui_signals.signal_label_number_update.emit('betlimit', str(np.round(d.finalBetLimit, 2)))
+    #     gui_signals.signal_label_number_update.emit('runs', str(int(m.runs)))
+    #     gui_signals.signal_label_number_update.emit('sheetname', sheet_name)
+    #     gui_signals.signal_label_number_update.emit('collusion_cards', str(m.collusion_cards))
+    #     gui_signals.signal_label_number_update.emit('mycards', str(t.mycards))
+    #     gui_signals.signal_label_number_update.emit('tablecards', str(t.cardsOnTable))
+    #     gui_signals.signal_label_number_update.emit('opponent_range', str(range) + str(range2))
+    #     gui_signals.signal_label_number_update.emit('mincallequity', str(np.round(t.minEquityCall, 2) * 100) + "%")
+    #     gui_signals.signal_label_number_update.emit('minbetequity', str(np.round(t.minEquityBet, 2) * 100) + "%")
+    #     gui_signals.signal_label_number_update.emit('outs', str(d.outs))
+    #     gui_signals.signal_label_number_update.emit('initiative', str(t.other_player_has_initiative))
+    #     gui_signals.signal_label_number_update.emit('round_pot', str(np.round(t.round_pot_value, 2)))
+    #     gui_signals.signal_label_number_update.emit('pot_multiple', str(np.round(d.pot_multiple, 2)))
+    #
+    #     if t.gameStage != 'PreFlop' and p.selected_strategy['use_relative_equity']:
+    #         gui_signals.signal_label_number_update.emit('relative_equity',
+    #                                                     str(np.round(t.relative_equity, 2) * 100) + "%")
+    #         gui_signals.signal_label_number_update.emit('range_equity', str(np.round(t.range_equity, 2) * 100) + "%")
+    #     else:
+    #         gui_signals.signal_label_number_update.emit('relative_equity', "")
+    #         gui_signals.signal_label_number_update.emit('range_equity', "")
+    #
+    #     # gui_signals.signal_lcd_number_update.emit('zero_ev', round(d.maxCallEV, 2))
+    #
+    #     gui_signals.signal_pie_chart_update.emit(t.winnerCardTypeList)
+    #     gui_signals.signal_curve_chart_update1.emit(h.histEquity, h.histMinCall, h.histMinBet, t.equity,
+    #                                                 t.minCall, t.minBet,
+    #                                                 'bo',
+    #                                                 'ro')
+    #
+    #     gui_signals.signal_curve_chart_update2.emit(t.power1, t.power2, t.minEquityCall, t.minEquityBet,
+    #                                                 t.smallBlind, t.bigBlind,
+    #                                                 t.maxValue_call, t.maxValue_bet,
+    #                                                 t.maxEquityCall, t.max_X, t.maxEquityBet)
+
+    def update_most_gui_items(self, preflop_state, p, t, h, gui_signals):
         try:
             sheet_name = t.preflop_sheet_name
         except:
             sheet_name = ''
-        gui_signals.signal_decision.emit(str(d.decision + " " + sheet_name))
-        gui_signals.signal_status.emit(d.decision)
+        # gui_signals.signal_decision.emit(str(d.decision + " " + sheet_name))
+        # gui_signals.signal_status.emit(d.decision)
         range2 = ''
         if hasattr(t, 'reverse_sheet_name'):
             range = t.reverse_sheet_name
@@ -65,64 +128,63 @@ class ThreadManager(threading.Thread):
                 range2 = " " + preflop_state.range_column_name + ""
 
         else:
-            range = str(m.opponent_range)
+            range = 'na'
         if range == '1': range = 'All cards'
 
         if t.gameStage != 'PreFlop' and p.selected_strategy['preflop_override']:
             sheet_name = preflop_state.preflop_sheet_name
 
-        gui_signals.signal_label_number_update.emit('equity', str(np.round(t.abs_equity * 100, 2)) + "%")
-        gui_signals.signal_label_number_update.emit('required_minbet', str(np.round(t.minBet, 2)))
-        gui_signals.signal_label_number_update.emit('required_mincall', str(np.round(t.minCall, 2)))
+        # gui_signals.signal_label_number_update.emit('equity', str(np.round(t.abs_equity * 100, 2)) + "%")
+        # gui_signals.signal_label_number_update.emit('required_minbet', str(np.round(t.minBet, 2)))
+        # gui_signals.signal_label_number_update.emit('required_mincall', str(np.round(t.minCall, 2)))
         # gui_signals.signal_lcd_number_update.emit('potsize', t.totalPotValue)
         gui_signals.signal_label_number_update.emit('gamenumber',
                                                     str(int(self.game_logger.get_game_count(p.current_strategy))))
-        gui_signals.signal_label_number_update.emit('assumed_players', str(int(t.assumedPlayers)))
-        gui_signals.signal_label_number_update.emit('calllimit', str(np.round(d.finalCallLimit, 2)))
-        gui_signals.signal_label_number_update.emit('betlimit', str(np.round(d.finalBetLimit, 2)))
-        gui_signals.signal_label_number_update.emit('runs', str(int(m.runs)))
-        gui_signals.signal_label_number_update.emit('sheetname', sheet_name)
-        gui_signals.signal_label_number_update.emit('collusion_cards', str(m.collusion_cards))
+        # gui_signals.signal_label_number_update.emit('assumed_players', str(int(t.assumedPlayers)))
+        # gui_signals.signal_label_number_update.emit('calllimit', str(np.round(d.finalCallLimit, 2)))
+        # gui_signals.signal_label_number_update.emit('betlimit', str(np.round(d.finalBetLimit, 2)))
+        # gui_signals.signal_label_number_update.emit('runs', str(int(m.runs)))
+        # gui_signals.signal_label_number_update.emit('sheetname', sheet_name)
+        # gui_signals.signal_label_number_update.emit('collusion_cards', str(m.collusion_cards))
         gui_signals.signal_label_number_update.emit('mycards', str(t.mycards))
         gui_signals.signal_label_number_update.emit('tablecards', str(t.cardsOnTable))
         gui_signals.signal_label_number_update.emit('opponent_range', str(range) + str(range2))
-        gui_signals.signal_label_number_update.emit('mincallequity', str(np.round(t.minEquityCall, 2) * 100) + "%")
-        gui_signals.signal_label_number_update.emit('minbetequity', str(np.round(t.minEquityBet, 2) * 100) + "%")
-        gui_signals.signal_label_number_update.emit('outs', str(d.outs))
-        gui_signals.signal_label_number_update.emit('initiative', str(t.other_player_has_initiative))
+        # gui_signals.signal_label_number_update.emit('mincallequity', str(np.round(t.minEquityCall, 2) * 100) + "%")
+        # gui_signals.signal_label_number_update.emit('minbetequity', str(np.round(t.minEquityBet, 2) * 100) + "%")
+        # gui_signals.signal_label_number_update.emit('outs', str(d.outs))
+        # gui_signals.signal_label_number_update.emit('initiative', str(t.other_player_has_initiative))
         gui_signals.signal_label_number_update.emit('round_pot', str(np.round(t.round_pot_value, 2)))
-        gui_signals.signal_label_number_update.emit('pot_multiple', str(np.round(d.pot_multiple, 2)))
+        # gui_signals.signal_label_number_update.emit('pot_multiple', str(np.round(d.pot_multiple, 2)))
 
-        if t.gameStage != 'PreFlop' and p.selected_strategy['use_relative_equity']:
-            gui_signals.signal_label_number_update.emit('relative_equity',
-                                                        str(np.round(t.relative_equity, 2) * 100) + "%")
-            gui_signals.signal_label_number_update.emit('range_equity', str(np.round(t.range_equity, 2) * 100) + "%")
-        else:
-            gui_signals.signal_label_number_update.emit('relative_equity', "")
-            gui_signals.signal_label_number_update.emit('range_equity', "")
+        # if t.gameStage != 'PreFlop' and p.selected_strategy['use_relative_equity']:
+        #     gui_signals.signal_label_number_update.emit('relative_equity',
+        #                                                 str(np.round(t.relative_equity, 2) * 100) + "%")
+        #     gui_signals.signal_label_number_update.emit('range_equity', str(np.round(t.range_equity, 2) * 100) + "%")
+        # else:
+        #     gui_signals.signal_label_number_update.emit('relative_equity', "")
+        #     gui_signals.signal_label_number_update.emit('range_equity', "")
 
         # gui_signals.signal_lcd_number_update.emit('zero_ev', round(d.maxCallEV, 2))
 
-        gui_signals.signal_pie_chart_update.emit(t.winnerCardTypeList)
-        gui_signals.signal_curve_chart_update1.emit(h.histEquity, h.histMinCall, h.histMinBet, t.equity,
-                                                    t.minCall, t.minBet,
-                                                    'bo',
-                                                    'ro')
+        # gui_signals.signal_pie_chart_update.emit(t.winnerCardTypeList)
+        # gui_signals.signal_curve_chart_update1.emit(h.histEquity, h.histMinCall, h.histMinBet, t.equity,
+        #                                             t.minCall, t.minBet,
+        #                                             'bo',
+        #                                             'ro')
 
-        gui_signals.signal_curve_chart_update2.emit(t.power1, t.power2, t.minEquityCall, t.minEquityBet,
-                                                    t.smallBlind, t.bigBlind,
-                                                    t.maxValue_call, t.maxValue_bet,
-                                                    t.maxEquityCall, t.max_X, t.maxEquityBet)
+        # gui_signals.signal_curve_chart_update2.emit(t.power1, t.power2, t.minEquityCall, t.minEquityBet,
+        #                                             t.smallBlind, t.bigBlind,
+        #                                             t.maxValue_call, t.maxValue_bet,
+        #                                             t.maxEquityCall, t.max_X, t.maxEquityBet)
+
 
     def run(self):
         log = logging.getLogger(__name__)
         h = History()
         # preflop_url, preflop_url_backup = self.updater.get_preflop_sheet_url()
         preflop_url = os.path.join('tools', 'preflop.xlsx')
-        try:
-            h.preflop_sheet = pd.read_excel(preflop_url, sheet_name=None)
-        except:
-            h.preflop_sheet = pd.read_excel(preflop_url_backup, sheet_name=None)
+        h.preflop_sheet = pd.read_excel(preflop_url, sheet_name=None)
+
 
         self.game_logger.clean_database()
 
@@ -159,7 +221,6 @@ class ThreadManager(threading.Thread):
                         t.get_table_cards(h) and \
                         t.upload_collusion_wrapper(p, h) and \
                         t.get_dealer_position() and \
-                        t.check_for_button() and \
                         t.get_round_number(h) and \
                         t.check_for_checkbutton() and \
                         t.init_get_other_players_info() and \
@@ -175,6 +236,7 @@ class ThreadManager(threading.Thread):
                         t.get_current_call_value(p) and \
                         t.get_current_bet_value(p) and \
                         t.get_new_hand2(h, p)
+                # t.check_for_button()
                 # t.get_other_player_names(p) and \
                 # t.get_lost_everything(h, t, p, self.gui_signals) and \
                 # t.check_for_captcha(mouse) and \
@@ -183,23 +245,22 @@ class ThreadManager(threading.Thread):
                 # t.check_fast_fold(h, p, mouse) and \
             if not self.gui_signals.pause_thread:
                 config = ConfigObj("config.ini")
-                m = run_montecarlo_wrapper(p, self.gui_signals, config, ui, t, self.game_logger, preflop_state, h)
+                # m = run_montecarlo_wrapper(p, self.gui_signals, config, ui, t, self.game_logger, preflop_state, h)
                 self.gui_signals.signal_progressbar_increase.emit(20)
-                d = Decision(t, h, p, self.game_logger)
-                d.make_decision(t, h, p, self.game_logger)
+                # d = Decision(t, h, p, self.game_logger)
+                # d.make_decision(t, h, p, self.game_logger)
                 self.gui_signals.signal_progressbar_increase.emit(10)
                 if self.gui_signals.exit_thread: sys.exit()
 
-                self.update_most_gui_items(preflop_state, p, m, t, d, h, self.gui_signals)
-
-                log.info(
-                    "Equity: " + str(t.equity * 100) + "% -> " + str(int(t.assumedPlayers)) + " (" + str(
-                        int(t.other_active_players)) + "-" + str(int(t.playersAhead)) + "+1) Plr")
-                log.info("Final Call Limit: " + str(d.finalCallLimit) + " --> " + str(t.minCall))
-                log.info("Final Bet Limit: " + str(d.finalBetLimit) + " --> " + str(t.minBet))
-                log.info(
-                    "Pot size: " + str((t.totalPotValue)) + " -> Zero EV Call: " + str(round(d.maxCallEV, 2)))
-                log.info("+++++++++++++++++++++++ Decision: " + str(d.decision) + "+++++++++++++++++++++++")
+                self.update_most_gui_items(preflop_state, p, t, h, self.gui_signals)   # remove monte carlo
+                # log.info(
+                #     "Equity: " + str(t.equity * 100) + "% -> " + str(int(t.assumedPlayers)) + " (" + str(
+                #         int(t.other_active_players)) + "-" + str(int(t.playersAhead)) + "+1) Plr")
+                # log.info("Final Call Limit: " + str(d.finalCallLimit) + " --> " + str(t.minCall))
+                # log.info("Final Bet Limit: " + str(d.finalBetLimit) + " --> " + str(t.minBet))
+                # log.info(
+                #     "Pot size: " + str((t.totalPotValue)) + " -> Zero EV Call: " + str(round(d.maxCallEV, 2)))
+                # log.info("+++++++++++++++++++++++ Decision: " + str(d.decision) + "+++++++++++++++++++++++")
 
                 # mouse_target = d.decision
                 # if mouse_target == 'Call' and t.allInCallButton:
@@ -207,6 +268,13 @@ class ThreadManager(threading.Thread):
                 # mouse.mouse_action(mouse_target, t.tlc)
 
                 t.time_action_completed = datetime.datetime.utcnow()
+                log.info("___________________________________________________")
+                log.info(f"time to my cards: {t.time_my_cards_end - t.time_my_cards_start}")
+                log.info(f"time to table cards: {t.time_table_cards_end  - t.time_table_cards_start}")
+                log.info(f"time to other player funds: {t.time_other_funds - t.time_other_funds_start}")
+                log.info(f"time to other player pots: {t.time_other_pots_end - t.time_other_pots_start}")
+                log.info(f"time to new hands : {t.time_new_hand_end - t.time_new_hand_start}")
+                log.info(f"time to total record: {t.time_action_completed - t.timeout_start}")
 
                 filename = str(h.GameID) + "_" + str(t.gameStage) + "_" + str(h.round_number) + ".png"
                 log.debug("Saving screenshot: " + filename)
@@ -215,26 +283,26 @@ class ThreadManager(threading.Thread):
 
                 self.gui_signals.signal_status.emit("Logging data")
 
-                t_log_db = threading.Thread(name='t_log_db', target=self.game_logger.write_log_file, args=[p, h, t, d])
-                t_log_db.daemon = True
-                t_log_db.start()
+                # t_log_db = threading.Thread(name='t_log_db', target=self.game_logger.write_log_file, args=[p, h, t, d])
+                # t_log_db.daemon = True
+                # t_log_db.start()
                 # self.game_logger.write_log_file(p, h, t, d)
 
                 h.previousPot = t.totalPotValue
                 h.histGameStage = t.gameStage
-                h.histDecision = d.decision
-                h.histEquity = t.equity
-                h.histMinCall = t.minCall
-                h.histMinBet = t.minBet
+                # h.histDecision = d.decision
+                # h.histEquity = t.equity
+                # h.histMinCall = t.minCall
+                # h.histMinBet = t.minBet
                 h.hist_other_players = t.other_players
                 h.first_raiser = t.first_raiser
                 h.first_caller = t.first_caller
-                h.previous_decision = d.decision
+                # h.previous_decision = d.decision
                 h.lastRoundGameID = h.GameID
                 h.previous_round_pot_value = t.round_pot_value
-                h.last_round_bluff = False if t.currentBluff == 0 else True
-                if t.gameStage == 'PreFlop':
-                    preflop_state.update_values(t, d.decision, h, d)
+                # h.last_round_bluff = False if t.currentBluff == 0 else True
+                # if t.gameStage == 'PreFlop':
+                #     preflop_state.update_values(t, d.decision, h, d)
                 log.info("=========== round end ===========")
 
 
