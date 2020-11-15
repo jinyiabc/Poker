@@ -9,6 +9,7 @@ from math import sin, cos, pi
 import sys, getopt
 import os
 
+
 # in test mode, use a test image as input, otherwise use live screen capture
 testMode = True
 # testImage = 'jinyi0046.png'
@@ -41,7 +42,7 @@ allCards = {v + ' ' + s for s in suits for v in values}
 
 def getImage(name):
     filename = name + '.png';
-    image = cv2.imread(path.join(os.environ['image_src'], filename))
+    image = cv2.imread(path.join('../cards/images', filename))
     image = screen.imageToBw(image)
     return image
 
