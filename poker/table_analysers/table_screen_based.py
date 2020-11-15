@@ -1,6 +1,7 @@
 import datetime
 import inspect
 import logging
+import os
 import re
 import sys
 import threading
@@ -14,7 +15,8 @@ from PIL import Image
 from poker.decisionmaker.montecarlo_python import MonteCarlo
 from .base import Table
 from ..scraper.recognize_table import TableScraper
-from poker.tools.helper import FullRandom
+from poker.tools.helper import FullRandom, get_dir
+
 log = logging.getLogger(__name__)
 
 
@@ -31,7 +33,7 @@ class TableScreenBased(Table):
 
         if self.screenshot:
             log.debug("Top left corner found")
-            self.timeout_start = datetime.datetime.utcnow()
+            # self.timeout_start = datetime.datetime.utcnow()
             self.mt_tm = time.time()
             return True
         else:
@@ -46,7 +48,7 @@ class TableScreenBased(Table):
         return self.is_my_turn()
 
     def check_for_checkbutton(self):
-        self.checkButton = self.has_check_button()
+        self.checkButton = self.check_button # self.has_check_button()
         if self.checkButton:
             log.debug("Check button found")
         else:
@@ -104,7 +106,7 @@ class TableScreenBased(Table):
             return True
 
     def check_for_call(self):
-        self.callButton = self.has_call_button()
+        self.callButton = self.call_button # self.has_call_button()
         self.gui_signals.signal_progressbar_increase.emit(5)
 
         if self.callButton:
@@ -115,7 +117,7 @@ class TableScreenBased(Table):
 
     def check_for_betbutton(self):
         self.gui_signals.signal_progressbar_increase.emit(5)
-        self.bet_button_found = self.has_raise_button()
+        self.bet_button_found = self.raise_button # self.has_raise_button()
         if self.bet_button_found:
             log.debug("Bet button found")
         else:
@@ -123,7 +125,7 @@ class TableScreenBased(Table):
         return True
 
     def check_for_allincall(self):
-        self.allInCallButton = self.has_all_in_call_button()
+        self.allInCallButton = self.all_in_call_button  # self.has_all_in_call_button()
         if self.allInCallButton:
             log.debug("All in call button found")
         else:
@@ -285,28 +287,26 @@ class TableScreenBased(Table):
         return True
 
     def get_other_player_funds(self, p):
-        self.time_other_funds_start = datetime.datetime.utcnow()
         if p.selected_strategy['gather_player_names'] == 1:
-            self.get_players_funds()
+            # self.get_players_funds()
             for i in range(1, self.total_players):
                 self.gui_signals.signal_status.emit(f"Check other players funds {i}")
                 self.gui_signals.signal_progressbar_increase.emit(1)
                 value = self.player_funds[i]
                 value = float(value) if value != '' else ''
                 self.other_players[i-1]['funds'] = value
-        self.time_other_funds = datetime.datetime.utcnow()
         return True
 
     def get_other_player_pots(self):
         self.time_other_pots_start = datetime.datetime.utcnow()
         self.gui_signals.signal_status.emit(f"Get table pots")
         self.gui_signals.signal_progressbar_increase.emit(2)
-        self.get_pots()
+        # self.get_pots()
 
         exclude = set(range(self.total_players)) - set(self.players_in_game)
         self.gui_signals.signal_status.emit(f"Get player pots of players in game {self.players_in_game}")
         self.gui_signals.signal_progressbar_increase.emit(5)
-        self.get_player_pots(skip=list(exclude.union({0})))
+        # self.get_player_pots(skip=list(exclude.union({0})))
 
         for n in range(1, self.total_players):
             if self.player_pots[n] != "":
@@ -316,13 +316,16 @@ class TableScreenBased(Table):
                     self.other_players[n - 1]['pot'] = 0
 
                 log.debug("FINAL POT after regex: " + str(self.other_players[n - 1]))
+        # log.info(f"Current thread for player pots: {threading.currentThread().getName()}")
         self.time_other_pots_end = datetime.datetime.utcnow()
+        log.info(f"Collapsed time for player pots: {self.time_other_pots_end - self.time_other_pots_start }")
         return True
 
     def get_bot_pot(self, p):
         self.gui_signals.signal_status.emit("Get bot pot")
-        from poker.scraper.screen_operations import ocr
-        value = ocr(self.screenshot, 'player_pot_area', self.table_dict, str(0))
+        # from poker.scraper.screen_operations import ocr
+        # value = ocr(self.screenshot, 'player_pot_area', self.table_dict, str(0))
+        value = self.player_pots[0]
 
         if value != "":
             self.bot_pot = float(value)
@@ -349,15 +352,15 @@ class TableScreenBased(Table):
 
             self.other_players[i-1]['utg_position'] = self.get_utg_from_abs_pos(
                 self.other_players[i-1]['abs_position'],
-                self.dealer_position)
+                self.dealer_position1)
 
         self.other_active_players = sum([v['status'] for v in self.other_players])
         if self.gameStage == "PreFlop":
             self.playersBehind = sum(
-                [v['status'] for v in self.other_players if v['abs_position'] >= self.dealer_position + 3 - 1])
+                [v['status'] for v in self.other_players if v['abs_position'] >= self.dealer_position1 + 3 - 1])
         else:
             self.playersBehind = sum(
-                [v['status'] for v in self.other_players if v['abs_position'] >= self.dealer_position + 1 - 1])
+                [v['status'] for v in self.other_players if v['abs_position'] >= self.dealer_position1 + 1 - 1])
         self.playersAhead = self.other_active_players - self.playersBehind
         self.isHeadsUp = True if self.other_active_players < 2 else False
         log.debug("Other players in the game: " + str(self.other_active_players))
@@ -402,18 +405,16 @@ class TableScreenBased(Table):
         self.gui_signals.signal_status.emit(f"Get dealer position")
         self.gui_signals.signal_progressbar_increase.emit(1)
         self.get_dealer_position2()
-        self.position_utg_plus = (self.total_players + 3 - self.dealer_position) % self.total_players
-
+        self.position_utg_plus = (self.total_players + 3 - self.dealer_position1) % self.total_players
         log.info('Bot position is UTG+' + str(self.position_utg_plus))  # 0 mean bot is UTG
-
         if self.position_utg_plus == '':
             self.position_utg_plus = 0
-            self.dealer_position = 3
+            self.dealer_position1 = 3
             log.error('Could not determine dealer position. Assuming UTG')
         else:
-            log.info('Dealer position (0 is myself and 1 is next player): ' + str(self.dealer_position))
+            log.info('Dealer position (0 is myself and 1 is next player): ' + str(self.dealer_position1))
 
-        self.big_blind_position_abs_all = (self.dealer_position + 2) % 6  # 0 is myself, 1 is player to my left
+        self.big_blind_position_abs_all = (self.dealer_position1 + 2) % 6  # 0 is myself, 1 is player to my left
         self.big_blind_position_abs_op = self.big_blind_position_abs_all - 1
         self.gui_signals.signal_progressbar_increase.emit(5)
 
@@ -453,7 +454,7 @@ class TableScreenBased(Table):
             self.gui_signals.signal_status.emit("Unable to get round pot value")
             log.warning("unable to get round pot value")
             # self.round_pot_value = h.previous_round_pot_value
-            self.screenshot.save("pics/ErrRoundPotValue.png")
+            self.screenshot.save(os.path.join(get_dir('pics'), "ErrRoundPotValue.png"))
 
         self.gui_signals.signal_progressbar_increase.emit(5)
         return True
@@ -461,7 +462,7 @@ class TableScreenBased(Table):
     def get_my_funds(self, h, p):
         self.gui_signals.signal_status.emit(f"Get my funds")
         self.gui_signals.signal_progressbar_increase.emit(1)
-        self.get_my_funds2()
+        # self.get_my_funds2()
         self.myFunds = self.player_funds[0]
         if self.myFunds != "":
             try:
@@ -486,7 +487,7 @@ class TableScreenBased(Table):
         self.gui_signals.signal_progressbar_increase.emit(1)
         if not self.checkButton:
 
-            self.currentCallValue = self.get_call_value()
+            self.currentCallValue = self.call_value
 
         elif self.checkButton:
             self.currentCallValue = 0
@@ -503,7 +504,7 @@ class TableScreenBased(Table):
         self.gui_signals.signal_status.emit(f"Get raise value")
         self.gui_signals.signal_progressbar_increase.emit(1)
 
-        self.currentBetValue = self.get_raise_value()
+        self.currentBetValue = self.raise_value
 
         # if self.currentCallValue == '' and p.selected_strategy['pokerSite'][0:2] == "PS" and self.allInCallButton:
         #     log.warning("Taking call value from button on the right")

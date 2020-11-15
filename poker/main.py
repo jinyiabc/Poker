@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 import os
 
-from poker.tools.helper import init_logger
+from poker.tools.helper import init_logger, get_config, multi_threading, get_multiprocessing_config
 
 if not (platform == "linux" or platform == "linux2"):
     matplotlib.use('Qt5Agg')
@@ -48,7 +48,7 @@ class ThreadManager(threading.Thread):
         self.name = name
         self.counter = counter
         self.loger = logging.getLogger('main')
-
+        self.pos = None
         self.game_logger = GameLogger()
 
     # def update_most_gui_items(self, preflop_state, p, m, t, d, h, gui_signals):
@@ -114,7 +114,8 @@ class ThreadManager(threading.Thread):
     #                                                 t.maxValue_call, t.maxValue_bet,
     #                                                 t.maxEquityCall, t.max_X, t.maxEquityBet)
 
-    def update_most_gui_items(self, preflop_state, p, t, h, gui_signals):
+    def update_most_gui_items(self, preflop_state, p, t, h, counter, gui_signals):
+        self.time_update_ui_start = datetime.datetime.utcnow()
         try:
             sheet_name = t.preflop_sheet_name
         except:
@@ -148,6 +149,14 @@ class ThreadManager(threading.Thread):
         # gui_signals.signal_label_number_update.emit('collusion_cards', str(m.collusion_cards))
         gui_signals.signal_label_number_update.emit('mycards', str(t.mycards))
         gui_signals.signal_label_number_update.emit('tablecards', str(t.cardsOnTable))
+
+        if counter == 1:
+            gui_signals.signal_label_number_update.emit('mycard_1', str(t.mycards))
+            gui_signals.signal_label_number_update.emit('tablecard_1', str(t.cardsOnTable))
+        elif counter == 2:
+            gui_signals.signal_label_number_update.emit('mycard_2', str(t.mycards))
+            gui_signals.signal_label_number_update.emit('tablecard_2', str(t.cardsOnTable))
+
         gui_signals.signal_label_number_update.emit('opponent_range', str(range) + str(range2))
         # gui_signals.signal_label_number_update.emit('mincallequity', str(np.round(t.minEquityCall, 2) * 100) + "%")
         # gui_signals.signal_label_number_update.emit('minbetequity', str(np.round(t.minEquityBet, 2) * 100) + "%")
@@ -176,7 +185,7 @@ class ThreadManager(threading.Thread):
         #                                             t.smallBlind, t.bigBlind,
         #                                             t.maxValue_call, t.maxValue_bet,
         #                                             t.maxEquityCall, t.max_X, t.maxEquityBet)
-
+        self.time_update_ui_end = datetime.datetime.utcnow()
 
     def run(self):
         log = logging.getLogger(__name__)
@@ -185,9 +194,12 @@ class ThreadManager(threading.Thread):
         preflop_url = os.path.join('tools', 'preflop.xlsx')
         h.preflop_sheet = pd.read_excel(preflop_url, sheet_name=None)
 
-
         self.game_logger.clean_database()
-
+        if self.counter == 1:
+            self.pos = (1500, 0)
+        elif self.counter == 2:
+            self.pos = (1500, 700)
+        logging.info(f'starting top left corner: {self.pos}')
         p = StrategyHandler()
         p.read_strategy()
 
@@ -197,9 +209,9 @@ class ThreadManager(threading.Thread):
 
         while True:
             # reload table if changed
-            config = ConfigObj("config.ini")
-            if table_scraper_name != config['table_scraper_name']:
-                table_scraper_name = config['table_scraper_name']
+            config = get_config()
+            if table_scraper_name != config['DEFAULT']['table_scraper_name']:
+                table_scraper_name = config['DEFAULT']['table_scraper_name']
                 log.info(f"Loading table scraper info for {table_scraper_name}")
                 table_dict = mongo.get_table(table_scraper_name)
 
@@ -210,41 +222,98 @@ class ThreadManager(threading.Thread):
 
             ready = False
             while (not ready):
+                    # time_start = datetime.datetime.utcnow()
                 p.read_strategy()
                 t = TableScreenBased(p, table_dict, self.gui_signals, self.game_logger, version)
-                # mouse = MouseMoverTableBased(table_dict)
-                # mouse.move_mouse_away_from_buttons_jump()
+                try:
+                    time_start = datetime.datetime.utcnow()
+                    # mouse = MouseMoverTableBased(table_dict)
+                    # mouse.move_mouse_away_from_buttons_jump()
 
-                ready = t.take_screenshot(True, p) and \
-                        t.get_top_left_corner(p) and \
-                        t.get_my_cards(h) and \
-                        t.get_table_cards(h) and \
-                        t.upload_collusion_wrapper(p, h) and \
-                        t.get_dealer_position() and \
-                        t.get_round_number(h) and \
-                        t.check_for_checkbutton() and \
-                        t.init_get_other_players_info() and \
-                        t.get_other_player_status(p, h) and \
-                        t.get_my_funds(h, p) and \
-                        t.get_other_player_funds(p) and \
-                        t.get_other_player_pots() and \
-                        t.get_total_pot_value(h) and \
-                        t.get_round_pot_value(h) and \
-                        t.check_for_call() and \
-                        t.check_for_betbutton() and \
-                        t.check_for_allincall() and \
-                        t.get_current_call_value(p) and \
-                        t.get_current_bet_value(p) and \
-                        t.get_new_hand2(h, p)
-                # t.check_for_button()
-                # t.get_other_player_names(p) and \
-                # t.get_lost_everything(h, t, p, self.gui_signals) and \
-                # t.check_for_captcha(mouse) and \
-                # t.check_for_imback(mouse) and \
-                # t.get_new_hand(mouse, h, p) and \
-                # t.check_fast_fold(h, p, mouse) and \
+                    # ready = t.take_screenshot(True, p) and \
+                    #         t.get_top_left_corner(p) and \
+                    #         t.get_my_cards(h) and \
+                    #         t.get_table_cards(h) and \
+                    #         t.upload_collusion_wrapper(p, h) and \
+                    #         t.get_dealer_position() and \
+                    #         t.get_round_number(h) and \
+                    #         t.check_for_checkbutton() and \
+                    #         t.init_get_other_players_info() and \
+                    #         t.get_other_player_status(p, h) and \
+                    #         t.get_players_funds2() and \
+                    #         t.get_my_funds(h, p) and \
+                    #         t.get_other_player_funds(p) and \
+                    #         t.get_other_player_pots() and \
+                    #         t.get_total_pot_value(h) and \
+                    #         t.get_round_pot_value(h) and \
+                    #         t.check_for_call() and \
+                    #         t.check_for_betbutton() and \
+                    #         t.check_for_allincall() and \
+                    #         t.get_current_call_value(p) and \
+                    #         t.get_current_bet_value(p) and \
+                    #         t.get_new_hand2(h, p)
+                    # t.check_for_button()
+                    # t.get_other_player_names(p) and \
+                    # t.get_lost_everything(h, t, p, self.gui_signals) and \
+                    # t.check_for_captcha(mouse) and \
+                    # t.check_for_imback(mouse) and \
+                    # t.get_new_hand(mouse, h, p) and \
+                    # t.check_fast_fold(h, p, mouse) and \
+
+                    if t.take_screenshot1(True, self.pos, p) and t.get_top_left_corner(p) and t.check_for_button():
+                        from multiprocessing.pool import ThreadPool
+                        parallel, cores = get_multiprocessing_config()
+                        logging.info("Start with parallel={} and cores={}".format(parallel, cores))
+                        thread_pool = ThreadPool(cores)
+                        thread_pool.map(t.get_player_pots_nn, [0, 1, 2, 3, 4, 5])
+                        thread_pool.map(t.get_pots2, ['current_round_pot', 'total_pot_area'])
+                        thread_pool.map(t.get_call_raise_value, ['raise_value', 'call_value'])
+                        thread_pool.map(t.get_player_funds, [0, 1, 2, 3, 4, 5])
+                        thread_pool.map(t.is_template_in_search_area1, [{'name': 'raise_button', 'player': None},
+                                                                        {'name': 'call_button', 'player': None},
+                                                                        {'name': 'all_in_call_button', 'player': None},
+                                                                        {'name': 'check_button', 'player': None},
+                                                                        {'name': 'dealer_button', 'player': 0},
+                                                                        {'name': 'dealer_button', 'player': 1},
+                                                                        {'name': 'dealer_button', 'player': 2},
+                                                                        {'name': 'dealer_button', 'player': 3},
+                                                                        {'name': 'dealer_button', 'player': 4},
+                                                                        {'name': 'dealer_button', 'player': 5},
+                                                                        {'name': 'covered_card', 'player': 1},
+                                                                        {'name': 'covered_card', 'player': 2},
+                                                                        {'name': 'covered_card', 'player': 3},
+                                                                        {'name': 'covered_card', 'player': 4},
+                                                                        {'name': 'covered_card', 'player': 5}])
+                        thread_pool.close()
+                        thread_pool.join()
+                        logging.info("Completed.")
+
+                        ready = t.get_my_cards(h) and \
+                                t.get_table_cards(h) and \
+                                t.upload_collusion_wrapper(p, h) and \
+                                t.get_dealer_position() and \
+                                t.get_round_number(h) and \
+                                t.check_for_checkbutton() and \
+                                t.init_get_other_players_info() and \
+                                t.get_other_player_status(p, h) and \
+                                t.get_my_funds(h, p) and \
+                                t.get_other_player_funds(p) and \
+                                t.get_other_player_pots() and \
+                                t.get_total_pot_value(h) and \
+                                t.get_round_pot_value(h) and \
+                                t.check_for_call() and \
+                                t.check_for_betbutton() and \
+                                t.check_for_allincall() and \
+                                t.get_current_call_value(p) and \
+                                t.get_current_bet_value(p) and \
+                                t.get_new_hand2(h, p)
+                finally:
+                    time_end = datetime.datetime.utcnow()
+                    log.info("___________________________________________________")
+                    log.info(f"time to total record: {time_end - time_start}")
+
             if not self.gui_signals.pause_thread:
-                config = ConfigObj("config.ini")
+                config = get_config()
                 # m = run_montecarlo_wrapper(p, self.gui_signals, config, ui, t, self.game_logger, preflop_state, h)
                 self.gui_signals.signal_progressbar_increase.emit(20)
                 # d = Decision(t, h, p, self.game_logger)
@@ -252,7 +321,7 @@ class ThreadManager(threading.Thread):
                 self.gui_signals.signal_progressbar_increase.emit(10)
                 if self.gui_signals.exit_thread: sys.exit()
 
-                self.update_most_gui_items(preflop_state, p, t, h, self.gui_signals)   # remove monte carlo
+                self.update_most_gui_items(preflop_state, p, t, h, self.counter, self.gui_signals)  # remove monte carlo
                 # log.info(
                 #     "Equity: " + str(t.equity * 100) + "% -> " + str(int(t.assumedPlayers)) + " (" + str(
                 #         int(t.other_active_players)) + "-" + str(int(t.playersAhead)) + "+1) Plr")
@@ -267,19 +336,11 @@ class ThreadManager(threading.Thread):
                 #     mouse_target = 'Call2'
                 # mouse.mouse_action(mouse_target, t.tlc)
 
-                t.time_action_completed = datetime.datetime.utcnow()
-                log.info("___________________________________________________")
-                log.info(f"time to my cards: {t.time_my_cards_end - t.time_my_cards_start}")
-                log.info(f"time to table cards: {t.time_table_cards_end  - t.time_table_cards_start}")
-                log.info(f"time to other player funds: {t.time_other_funds - t.time_other_funds_start}")
-                log.info(f"time to other player pots: {t.time_other_pots_end - t.time_other_pots_start}")
-                log.info(f"time to new hands : {t.time_new_hand_end - t.time_new_hand_start}")
-                log.info(f"time to total record: {t.time_action_completed - t.timeout_start}")
 
                 filename = str(h.GameID) + "_" + str(t.gameStage) + "_" + str(h.round_number) + ".png"
                 log.debug("Saving screenshot: " + filename)
-                pil_image = t.crop_image(t.entireScreenPIL, t.tlc[0], t.tlc[1], t.tlc[0] + 950, t.tlc[1] + 650)
-                pil_image.save("log/screenshots/" + filename)
+                # pil_image = t.crop_image(t.entireScreenPIL, t.tlc[0], t.tlc[1], t.tlc[0] + 950, t.tlc[1] + 650)
+                # pil_image.save("log/screenshots/" + filename)
 
                 self.gui_signals.signal_status.emit("Logging data")
 
@@ -346,7 +407,9 @@ def run_poker():
     gui_signals = UIActionAndSignals(ui)
 
     t1 = ThreadManager(1, "Thread-1", 1, gui_signals)
+    t2 = ThreadManager(2, "Thread-2", 2, gui_signals)
     t1.start()
+    t2.start()
 
     MainWindow.show()
     try:

@@ -1,6 +1,8 @@
 """Tests for tablbe setup"""
 import os
 import io
+from unittest.mock import MagicMock
+
 import cv2
 import numpy as np
 from PIL import Image
@@ -8,8 +10,9 @@ from unittest import TestCase
 from poker.scraper.recognize_table import TableScraper
 from poker.scraper.screen_operations import find_template_on_screen, get_table_template_image, \
     crop_screenshot_with_topleft_corner, binary_pil_to_cv2, ocr, get_ocr_float, is_template_in_search_area, pil_to_cv2
+from poker.table_analysers.base import Table
 from poker.tools.helper import get_dir
-from poker.tools.mongo_manager import MongoManager, UpdateChecker
+from poker.tools.mongo_manager import MongoManager, UpdateChecker, StrategyHandler, GameLogger
 import matplotlib.pyplot as plt
 import logging
 import os.path as path
@@ -18,43 +21,49 @@ from poker.scraper.board import watchAndDisplayCards
 import poker.scraper.templateMatching as templateMatching
 
 
-def test_cropping():
-    entire_screen_pil = Image.open(os.path.join(get_dir('tests', 'screenshots'), 'test5.png'))
-    top_left_corner = get_table_template_image('GG_TEST1', 'topleft_corner')
+def test_cropping():  # ok!
+    entire_screen_pil = Image.open(os.path.join(get_dir('tests', 'screenshots'), 'test2.png'))
+    top_left_corner = get_table_template_image('GG_TEST', 'topleft_corner')
     img = cv2.cvtColor(np.array(entire_screen_pil), cv2.COLOR_BGR2RGB)
     count, points, bestfit, minimum_value = find_template_on_screen(top_left_corner, img, 0.01)
+    print(count)
 
 
 def test_crop_func():
-    entire_screen_pil = Image.open(os.path.join(get_dir('tests', 'screenshots'), 'test5.png'))
-    top_left_corner = get_table_template_image('GG_TEST1', 'topleft_corner')
+    entire_screen_pil = Image.open(os.path.join(get_dir('tests', 'screenshots'), 'test2.png'))
+    top_left_corner = get_table_template_image('GG_TEST', 'topleft_corner')
     # cv2.imshow('image', top_left_corner)
     # cv2.waitKey(0)
     cropped = crop_screenshot_with_topleft_corner(entire_screen_pil, top_left_corner)
     assert cropped
 
 
-def test_table_scraper():
+def test_table_scraper():  # ok for double screens.
     log = logging.getLogger(__name__)
     mongo = MongoManager()
     table_dict = mongo.get_table('GG_TEST')
     table_scraper = TableScraper(table_dict)
-    table_scraper.screenshot = Image.open(os.path.join(os.environ['test_src'], 'Capture6.PNG'))
-    table_scraper.crop_from_top_left_corner()
-    log.info(f"Is my turn?{table_scraper.is_my_turn()}")
-    table_scraper.lost_everything()
-    table_scraper.get_my_cards2()
-    table_scraper.get_table_cards2()
-    table_scraper.get_dealer_position2()
-    table_scraper.get_players_in_game()
-    table_scraper.get_pots()
-    table_scraper.get_players_funds()
-    table_scraper.get_call_value()
-    table_scraper.get_raise_value()
-    # table_scraper.has_all_in_call_button()
-    table_scraper.has_call_button()
-    table_scraper.has_raise_button()
-    # table_scraper.get_game_number_on_screen2()
+    table_scraper.screenshot = Image.open(os.path.join(get_dir('tests', 'screenshots'), 'test2.png'))
+
+    screenshot_array = table_scraper.crop_from_top_left_corner1()
+    count = len(screenshot_array)
+    for i in range(count):
+        logging.info(f'Number {i} table:')
+        table_scraper.screenshot = screenshot_array[i]
+        log.info(f"Is my turn?{table_scraper.is_my_turn()}")
+        table_scraper.lost_everything()
+        table_scraper.get_my_cards2()
+        table_scraper.get_table_cards2()
+        table_scraper.get_dealer_position2()
+        table_scraper.get_players_in_game()
+        table_scraper.get_pots()
+        table_scraper.get_players_funds()
+        table_scraper.get_call_value()
+        table_scraper.get_raise_value()
+        # table_scraper.has_all_in_call_button()
+        table_scraper.has_call_button()
+        table_scraper.has_raise_button()
+        # table_scraper.get_game_number_on_screen2()
 
 
 def test_card_download():  # ok!
@@ -77,10 +86,13 @@ def test_card_download():  # ok!
             #     search_area = table_dict[image_area]
             plt.imshow(template_cv2, cmap='gray', interpolation='bicubic')
             plt.show()
-def test_excel_download():    # !! ok
+
+
+def test_excel_download():  # !! ok
     mongo = UpdateChecker()
     preflop_url, preflop_url_backup = mongo.get_preflop_sheet_url()
     print(preflop_url)
+
 
 def test_card_upload():  # OK!
     mongo = MongoManager()
@@ -159,6 +171,7 @@ def test_ocr_value1():  # ok!
         final_value = get_ocr_float(image)
         log.info(f"{testimage} : {final_value}")
 
+
 def test_is_my_turn():  ## ok!!!
     log = logging.getLogger(__name__)
     mongo = MongoManager()
@@ -168,9 +181,8 @@ def test_is_my_turn():  ## ok!!!
     table_scraper.screenshot = Image.open(os.path.join(test_src, 'Capture6.PNG'))
     screenshot = table_scraper.crop_from_top_left_corner()
 
-
     print(is_template_in_search_area(table_dict, screenshot,
-                               'my_turn', 'my_turn_search_area'))
+                                     'my_turn', 'my_turn_search_area'))
     #
     search_area = table_dict['my_turn_search_area']
     template = table_dict['my_turn']
@@ -178,12 +190,12 @@ def test_is_my_turn():  ## ok!!!
     cropped_screenshot = screenshot.crop((search_area['x1'], search_area['y1'], search_area['x2'], search_area['y2']))
     screenshot_cv2 = pil_to_cv2(cropped_screenshot)
 
-    plt.imshow(cropped_screenshot, cmap='gray', interpolation='bicubic')   # ok!
+    plt.imshow(cropped_screenshot, cmap='gray', interpolation='bicubic')  # ok!
     plt.imshow(template_cv2, cmap='gray', interpolation='bicubic')
     plt.show()
 
 
-def test_dealer_position():   # ok for 0.85
+def test_dealer_position():  # ok for 0.85
     log = logging.getLogger(__name__)
     test_dir = os.environ['test_dealer']
     # image = Image.open(path.join(test_dir, 'player5.png'))
@@ -203,6 +215,29 @@ def test_dealer_position():   # ok for 0.85
         log.info(f"dealer {i} button not found")
 
 
+def test_screen_capture():
+    log = logging.getLogger(__name__)
+    mongo = MongoManager()
+    table_dict = mongo.get_table('GG_TEST')
+    game_logger = GameLogger()
+    gui_signals = MagicMock()
+    p = StrategyHandler()
+    p.read_strategy()
+    table = Table(p, gui_signals, game_logger, 0.0)
+    pos1 = (1500, 0)
+    pos2 = (1500,700)
+    table.take_screenshot1(True, pos1, p)
+    screenshot1 = table.entireScreenPIL
+    table.take_screenshot1(True, pos2, p)
+    screenshot2 = table.entireScreenPIL
+
+    plt.subplot(121),plt.imshow(screenshot1)
+    plt.subplot(122),plt.imshow(screenshot2,cmap = 'jet')
+    # plt.imshow(screenshot, cmap = 'gray', interpolation = 'bicubic')
+    plt.show()
+
+
+
 def test_table_and_my_cards():  # ok
     log = logging.getLogger(__name__)
     mongo = MongoManager()
@@ -210,8 +245,8 @@ def test_table_and_my_cards():  # ok
     table_scraper = TableScraper(table_dict)
 
     test_src_dir = os.environ['test_src']
-    test_mode = 'all'   #'single'
-    image_area = 'table_cards_area' # 'my_cards_area'
+    test_mode = 'all'  # 'single'
+    image_area = 'table_cards_area'  # 'my_cards_area'
 
     if test_mode == 'single':
         arr = ['2020-11-06_17-15-50.png']
@@ -225,7 +260,8 @@ def test_table_and_my_cards():  # ok
         # table_cards = []
         # player = None
         search_area = table_dict[image_area]
-        cropped_screenshot = screenshot.crop((search_area['x1'], search_area['y1'], search_area['x2'], search_area['y2']))
+        cropped_screenshot = screenshot.crop(
+            (search_area['x1'], search_area['y1'], search_area['x2'], search_area['y2']))
 
         cropped_screenshot = pil_to_cv2(cropped_screenshot)
         # screen.showImage(cropped_screenshot)

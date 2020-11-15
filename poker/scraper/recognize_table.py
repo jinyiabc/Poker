@@ -1,10 +1,13 @@
 """Recognize table"""
+import datetime
 import logging
 
 from poker.scraper.screen_operations import take_screenshot, crop_screenshot_with_topleft_corner, \
     is_template_in_search_area, binary_pil_to_cv2, ocr, pil_to_cv2
 from poker.scraper.table_setup import CARD_SUITES, CARD_VALUES
 from poker.scraper.board import watchAndDisplayCards
+from poker.tools.helper import multi_threading
+
 log = logging.getLogger(__name__)
 
 
@@ -12,21 +15,23 @@ class TableScraper:
     def __init__(self, table_dict):
         self.table_dict = table_dict
         self.screenshot = None
-
         self.total_players = 6
         self.my_cards = None
         self.table_cards = None
         self.current_round_pot = None
         self.total_pot = None
-        self.dealer_position = None
-        self.players_in_game = None
+        self.dealer_position = [None for _ in range(self.total_players)]
+        self.dealer_position1 = None
+        self.players_in_game = [None for _ in range(self.total_players)]
         self.player_funds = None
-        self.player_pots = None
+        # self.player_pots = None
         self.call_value = None
         self.raise_value = None
         self.call_button = None
         self.raise_button = None
         self.tlc = None
+        self.player_funds = [None for _ in range(self.total_players)]
+        self.player_pots = [None for _ in range(self.total_players)]
 
     def take_screenshot2(self):
         """Take a screenshot"""
@@ -103,13 +108,43 @@ class TableScraper:
     def get_dealer_position2(self):
         """Determines position of dealer, where 0=myself, continous counter clockwise"""
         for i in range(self.total_players):
-            if is_template_in_search_area(self.table_dict, self.screenshot,
-                                          'dealer_button', 'button_search_area', str(i)):
-                self.dealer_position = i
+            if self.dealer_position[i] == True:
+                self.dealer_position1 = i
                 log.info(f"Dealer found at position {i}")
                 return True
         log.warning("No dealer found.")
-        self.dealer_position = 0
+        self.dealer_position1 = 0
+
+    def is_template_in_search_area1(self, arg={'name': None, 'player': None}):
+        name = arg['name']
+        player = arg['player']
+        time_cv2_start = datetime.datetime.utcnow()
+        if player is not None:
+            if name == 'dealer_button':
+                self.dealer_position[player] = is_template_in_search_area(self.table_dict, self.screenshot,
+                                                                          'dealer_button', 'button_search_area',
+                                                                          str(player))
+            if name == 'covered_card':
+                self.players_in_game[player] = is_template_in_search_area(self.table_dict, self.screenshot,
+                                                                          'covered_card', 'covered_card_area',
+                                                                          str(player))
+
+        if name == 'raise_button':
+            self.raise_button = is_template_in_search_area(self.table_dict, self.screenshot,
+                                                           'raise_button', 'buttons_search_area')
+        if name == 'call_button':
+            self.call_button = is_template_in_search_area(self.table_dict, self.screenshot,
+                                                          'call_button', 'buttons_search_area')
+        if name == 'all_in_call_button':
+            self.all_in_call_button = is_template_in_search_area(self.table_dict, self.screenshot,
+                                                                 'all_in_call_button', 'buttons_search_area')
+        if name == 'check_button':
+            self.check_button = is_template_in_search_area(self.table_dict, self.screenshot,
+                                                           'check_button', 'buttons_search_area')
+
+        time_cv2_end = datetime.datetime.utcnow()
+        log.info(f"Collapsed time for {name}: {time_cv2_end - time_cv2_start}")
+        return True
 
     def fast_fold(self):
         """Find out if fast fold button is present"""
@@ -127,37 +162,51 @@ class TableScraper:
 
         Return: list of ints
         """
-        self.players_in_game = [0]  # assume myself in game
-        for i in range(1, self.total_players):
-            if is_template_in_search_area(self.table_dict, self.screenshot,
-                                          'covered_card', 'covered_card_area', str(i)):
-                self.players_in_game.append(i)
+        self.players_in_game[0] = True  # assume myself in game
+        # for i in range(1, self.total_players):
+        #     if is_template_in_search_area(self.table_dict, self.screenshot,
+        #                                   'covered_card', 'covered_card_area', str(i)):
+        #         self.players_in_game.append(i)
         log.info(f"Players in game: {self.players_in_game}")
         return True
 
-    def get_my_funds2(self):
-        self.get_players_funds(my_funds_only=True)
+    def get_player_funds(self, i):
+        self.get_players_funds(player=i)
+        return True
 
-    def get_players_funds(self, my_funds_only=False, skip=[]):
+    def get_players_funds2(self):
+        # res2 = multi_threading(self.get_player_funds, [0, 1, 2, 3, 4, 5], disable_multiprocessing=False,
+        #                        dataframe_mode=False)
+        assert res2 == [True, True, True, True, True, True], 'Player Funds are not calculated properly.'
+        return True
+
+    def get_players_funds(self, my_funds_only=False, skip=[], player=None):
         """
         Get funds of players
 
         Returns: list of floats
 
         """
-        if my_funds_only:
-            counter = 1
+        self.time_funds_start = datetime.datetime.utcnow()
+        if player is not None:
+            self.player_funds[player] = ocr(self.screenshot, 'player_funds_area', self.table_dict, str(player))
         else:
-            counter = self.total_players
-
-        self.player_funds = []
-        for i in range(counter):
-            if i in skip:
-                funds = 0
+            if my_funds_only:
+                counter = 1
             else:
-                funds = ocr(self.screenshot, 'player_funds_area', self.table_dict, str(i))
-            self.player_funds.append(funds)
-        log.info(f"Player funds: {self.player_funds}")
+                counter = self.total_players
+
+            # self.player_funds = [None for _ in range(self.total_players)]
+            for i in range(counter):
+                # if i in skip:
+                #     funds = 0
+                # else:
+                #     funds = ocr(self.screenshot, 'player_funds_area', self.table_dict, str(i))
+                # self.player_funds.append(funds)
+                self.player_funds[i] = ocr(self.screenshot, 'player_funds_area', self.table_dict, str(i))
+            log.info(f"Player funds: {self.player_funds}")
+        self.time_funds_end = datetime.datetime.utcnow()
+        log.info(f"Collapsed time for player funds: {self.time_funds_end - self.time_funds_start}")
         return True
 
     def other_players_names(self):
@@ -171,17 +220,33 @@ class TableScraper:
         self.total_pot = ocr(self.screenshot, 'total_pot_area', self.table_dict)
         log.info(f"Total pot {self.total_pot}")
 
+    def get_pots2(self, name):
+        time_pots_start = datetime.datetime.utcnow()
+        if name == 'current_round_pot':
+            self.current_round_pot = ocr(self.screenshot, 'current_round_pot', self.table_dict)
+            log.info(f"Current round pot {self.current_round_pot}")
+        if name == 'total_pot_area':
+            self.total_pot = ocr(self.screenshot, 'total_pot_area', self.table_dict)
+            log.info(f"Total pot {self.total_pot}")
+        time_pots_end = datetime.datetime.utcnow()
+        log.info(f"Collapsed time for {name}: {time_pots_end - time_pots_start}")
+
     def get_player_pots(self, skip=[]):
         """Get pots of the players"""
-        self.player_pots = []
         for i in range(self.total_players):
             if i in skip:
-                funds = 0
+                self.player_pots[i] = 0
             else:
-                funds = ocr(self.screenshot, 'player_pot_area', self.table_dict, str(i))
-            self.player_pots.append(funds)
+                self.player_pots[i] = ocr(self.screenshot, 'player_pot_area', self.table_dict, str(i))
         log.info(f"Player pots: {self.player_pots}")
 
+        return True
+
+    def get_player_pots_nn(self, i):
+        time_pots_start = datetime.datetime.utcnow()
+        self.player_pots[i] = ocr(self.screenshot, 'player_pot_area', self.table_dict, str(i))
+        time_pots_end = datetime.datetime.utcnow()
+        log.info(f"Collapsed time for player {i} pot: {time_pots_end - time_pots_start}")
         return True
 
     def check_button(self):
@@ -226,6 +291,18 @@ class TableScraper:
         self.raise_value = ocr(self.screenshot, 'raise_value', self.table_dict)
         log.info(f"Raise value: {self.raise_value}")
         return self.raise_value
+
+    def get_call_raise_value(self, name):
+        time_value_start = datetime.datetime.utcnow()
+        if name == 'raise_value':
+            self.raise_value = ocr(self.screenshot, 'raise_value', self.table_dict)
+            log.info(f"Raise value: {self.raise_value}")
+        if name == 'call_value':
+            self.call_value = ocr(self.screenshot, 'call_value', self.table_dict)
+            log.info(f"Call value: {self.call_value}")
+
+        time_value_end = datetime.datetime.utcnow()
+        log.info(f"Collapsed time for {name}: {time_value_end - time_value_start}")
 
     def get_game_number_on_screen2(self):
         """Game number"""

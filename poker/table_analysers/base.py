@@ -8,9 +8,10 @@ import numpy as np
 import pytesseract
 from PIL import Image, ImageFilter
 from configobj import ConfigObj
-
+import matplotlib.pyplot as plt
 from poker.decisionmaker.genetic_algorithm import GeneticAlgorithm
 from poker.scraper.recognize_table import TableScraper
+from poker.tools.helper import get_config
 from poker.tools.vbox_manager import VirtualBoxController
 
 
@@ -35,8 +36,8 @@ class Table(TableScraper):
                     if self.gui_signals.exit_thread == True: sys.exit()
 
         time.sleep(0.1)
-        config = ConfigObj("config.ini")
-        control = config['control']
+        config = get_config()
+        control = config['DEFAULT']['control']
         if control == 'Direct mouse control':
             self.take_screenshot2()
             self.entireScreenPIL = self.screenshot
@@ -51,6 +52,39 @@ class Table(TableScraper):
                 # gui_signals.signal_open_setup.emit(p,L)
                 self.take_screenshot2()
                 self.entireScreenPIL = self.screenshot
+
+        self.gui_signals.signal_status.emit(str(p.current_strategy))
+        self.gui_signals.signal_progressbar_increase.emit(5)
+        return True
+
+    def take_screenshot1(self, initial, pos, p):
+        if initial:
+            self.gui_signals.signal_status.emit("")
+            self.gui_signals.signal_progressbar_reset.emit()
+            if self.gui_signals.exit_thread == True: sys.exit()
+            if self.gui_signals.pause_thread == True:
+                while self.gui_signals.pause_thread == True:
+                    time.sleep(.2)
+                    if self.gui_signals.exit_thread == True: sys.exit()
+
+        time.sleep(0.1)
+        config = get_config()
+        control = config['DEFAULT']['control']
+        if control == 'Direct mouse control':
+            self.take_screenshot2()
+            self.entireScreenPIL = self.screenshot
+
+        else:
+            try:
+                vb = VirtualBoxController()
+                self.entireScreenPIL = vb.get_screenshot_vbox()
+                self.logger.debug("Screenshot taken from virtual machine")
+            except:
+                self.logger.warning("No virtual machine found. Press SETUP to re initialize the VM controller")
+                # gui_signals.signal_open_setup.emit(p,L)
+                self.take_screenshot2()
+                self.entireScreenPIL = self.screenshot
+        self.entireScreenPIL = self.entireScreenPIL.crop((pos[0], pos[1], pos[0] + 1000, pos[1] + 700))
 
         self.gui_signals.signal_status.emit(str(p.current_strategy))
         self.gui_signals.signal_progressbar_increase.emit(5)
@@ -93,7 +127,7 @@ class Table(TableScraper):
         keyList = []
         x_value = []
 
-        if Fund == "game_number":  # Beim Game_Number auslesen stört der "." (Punkt), deshalb wird er hier weggelassen
+        if fund == "game_number":  # Beim Game_Number auslesen stört der "." (Punkt), deshalb wird er hier weggelassen
             values = number_values
 
         for x in values:
@@ -320,7 +354,7 @@ class Table(TableScraper):
 
         for n in range(5):  # n is absolute position of other player, 0 is player after bot
             i = (
-                        self.dealer_position + n + 3 - 2) % 5  # less myself as 0 is now first other player to my left and no longer myself
+                        self.dealer_position1 + n + 3 - 2) % 5  # less myself as 0 is now first other player to my left and no longer myself
             self.logger.debug("Go through pots to find raiser abs: {0} {1}".format(i, self.other_players[i]['pot']))
             if self.other_players[i]['pot'] != '':  # check if not empty (otherwise can't convert string)
                 if self.other_players[i]['pot'] > reference_pot:
@@ -332,9 +366,9 @@ class Table(TableScraper):
                         if self.other_players[i]['pot'] > first_raiser_pot:
                             second_raiser = int(i)
 
-        first_raiser_utg = self.get_utg_from_abs_pos(first_raiser, self.dealer_position)
+        first_raiser_utg = self.get_utg_from_abs_pos(first_raiser, self.dealer_position1)
         highest_raiser = np.nanmax([first_raiser, second_raiser])
-        second_raiser_utg = self.get_utg_from_abs_pos(second_raiser, self.dealer_position)
+        second_raiser_utg = self.get_utg_from_abs_pos(second_raiser, self.dealer_position1)
 
         first_possible_caller = int(self.big_blind_position_abs_op + 1) if np.isnan(highest_raiser) else int(
             highest_raiser + 1)
@@ -351,7 +385,7 @@ class Table(TableScraper):
                     first_caller = int(n)
                     break
 
-        first_caller_utg = self.get_utg_from_abs_pos(first_caller, self.dealer_position)
+        first_caller_utg = self.get_utg_from_abs_pos(first_caller, self.dealer_position1)
 
         # check for callers between bot and first raiser. If so, first raiser becomes second raiser and caller becomes first raiser
         first_possible_caller = 0
@@ -365,8 +399,8 @@ class Table(TableScraper):
                         not (self.other_players[n]['pot'] == ''):
                     second_raiser = first_raiser
                     first_raiser = n
-                    first_raiser_utg = self.get_utg_from_abs_pos(first_raiser, self.dealer_position)
-                    second_raiser_utg = self.get_utg_from_abs_pos(second_raiser, self.dealer_position)
+                    first_raiser_utg = self.get_utg_from_abs_pos(first_raiser, self.dealer_position1)
+                    second_raiser_utg = self.get_utg_from_abs_pos(second_raiser, self.dealer_position1)
                     break
 
         self.logger.debug("First raiser abs: " + str(first_raiser))
