@@ -13,24 +13,24 @@ from poker.tools.mongo_manager import MongoManager
 
 
 def test_cropping():
-    entire_screen_pil = Image.open(os.path.join(get_dir('tests', 'screenshots'), 'screenshot1.png'))
-    top_left_corner = get_table_template_image('default', 'topleft_corner')
+    entire_screen_pil = Image.open(os.path.join(get_dir('tests', 'screenshots'), 'test5.png'))
+    top_left_corner = get_table_template_image('GG_TEST1', 'topleft_corner')
     img = cv2.cvtColor(np.array(entire_screen_pil), cv2.COLOR_BGR2RGB)
     count, points, bestfit, minimum_value = find_template_on_screen(top_left_corner, img, 0.01)
 
 
 def test_crop_func():
-    entire_screen_pil = Image.open(os.path.join(get_dir('tests', 'screenshots'), 'screenshot1.png'))
-    top_left_corner = get_table_template_image('default', 'topleft_corner')
+    entire_screen_pil = Image.open(os.path.join(get_dir('tests', 'screenshots'), 'test5.png'))
+    top_left_corner = get_table_template_image('GG_TEST1', 'topleft_corner')
     cropped = crop_screenshot_with_topleft_corner(entire_screen_pil, top_left_corner)
     assert cropped
 
 
 def test_table_scraper():
     mongo = MongoManager()
-    table_dict = mongo.get_table('default')
+    table_dict = mongo.get_table('GG_TEST1')
     table_scraper = TableScraper(table_dict)
-    table_scraper.screenshot = Image.open(os.path.join(get_dir('tests', 'screenshots'), 'screenshot1.png'))
+    table_scraper.screenshot = Image.open(os.path.join(get_dir('tests', 'screenshots'), 'test5.png'))
     table_scraper.crop_from_top_left_corner()
     table_scraper.is_my_turn()
     table_scraper.lost_everything()
