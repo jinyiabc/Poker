@@ -2,6 +2,8 @@ from sys import platform
 
 import matplotlib
 
+from poker.tools.helper import get_config
+
 if not (platform == "linux" or platform == "linux2"):
     matplotlib.use('Qt5Agg')
 from PyQt5.QtCore import *
@@ -205,26 +207,26 @@ class UIActionAndSignals(QObject):
             lambda: self.signal_update_selected_strategy(l, p))
         ui_main_window.table_selection.currentIndexChanged[str].connect(
             lambda: self.signal_update_selected_strategy(l, p))
-        config = ConfigObj("config.ini")
-        initial_selection = config['last_strategy']
+        config = get_config()
+        initial_selection = config['DEFAULT']['last_strategy']
         for i in [i for i, x in enumerate(playable_list) if x == initial_selection]:
             idx = i
         ui_main_window.comboBox_current_strategy.setCurrentIndex(idx)
 
-        table_scraper_name = config['table_scraper_name']
+        table_scraper_name = config['DEFAULT']['table_scraper_name']
         idx = available_tables.index(table_scraper_name)
         ui_main_window.table_selection.setCurrentIndex(idx)
 
     def signal_update_selected_strategy(self, l, p):
-        config = ConfigObj("config.ini")
+        config = get_config()
 
         newly_selected_strategy = self.ui.comboBox_current_strategy.currentText()
-        config['last_strategy'] = newly_selected_strategy
+        config['DEFAULT']['last_strategy'] = newly_selected_strategy
 
         table_selection = self.ui.table_selection.currentText()
-        config['table_scraper_name'] = table_selection
+        config['DEFAULT']['table_scraper_name'] = table_selection
 
-        config.write()
+        # config.write()
         p.read_strategy()
         self.logger.info("Active strategy changed to: " + p.current_strategy)
         self.logger.info("Active table changed to: " + table_selection)
@@ -327,8 +329,8 @@ class UIActionAndSignals(QObject):
 
         self.playable_list = self.p_edited.get_playable_strategy_list()
         self.ui_editor.Strategy.addItems(self.playable_list)
-        config = ConfigObj("config.ini")
-        initial_selection = config['last_strategy']
+        config = get_config()
+        initial_selection = config['DEFAULT']['last_strategy']
         for i in [i for i, x in enumerate(self.playable_list) if x == initial_selection]:
             idx = i
         self.ui_editor.Strategy.setCurrentIndex(idx)
@@ -385,9 +387,9 @@ class UIActionAndSignals(QObject):
         timeouts = ['8', '9', '10', '11', '12']
         self.ui_setup.comboBox_2.addItems(timeouts)
 
-        config = ConfigObj("config.ini")
+        config = get_config()
         try:
-            mouse_control = config['control']
+            mouse_control = config['DEFAULT']['control']
         except:
             mouse_control = 'Direct mouse control'
         for i in [i for i, x in enumerate(vm_list) if x == mouse_control]:
@@ -395,7 +397,7 @@ class UIActionAndSignals(QObject):
             self.ui_setup.comboBox_vm.setCurrentIndex(idx)
 
         try:
-            timeout = config['montecarlo_timeout']
+            timeout = config['DEFAULT']['montecarlo_timeout']
         except:
             timeout = 10
         for i in [i for i, x in enumerate(timeouts) if x == timeout]:
@@ -403,9 +405,9 @@ class UIActionAndSignals(QObject):
             self.ui_setup.comboBox_2.setCurrentIndex(idx)
 
     def save_setup(self):
-        config = ConfigObj("config.ini")
-        config['control'] = self.ui_setup.comboBox_vm.currentText()
-        config['montecarlo_timeout'] = self.ui_setup.comboBox_2.currentText()
+        config = get_config()
+        config['DEFAULT']['control'] = self.ui_setup.comboBox_vm.currentText()
+        config['DEFAULT']['montecarlo_timeout'] = self.ui_setup.comboBox_2.currentText()
         config.write()
         self.setup_form.close()
 

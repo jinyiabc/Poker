@@ -1,4 +1,5 @@
 """Recognize table"""
+import datetime
 import logging
 
 from poker.scraper.screen_operations import take_screenshot, crop_screenshot_with_topleft_corner, \
@@ -27,6 +28,7 @@ class TableScraper:
         self.call_button = None
         self.raise_button = None
         self.tlc = None
+        self.player_funds = [None for _ in range(self.total_players)]
 
     def take_screenshot2(self):
         """Take a screenshot"""
@@ -135,29 +137,36 @@ class TableScraper:
         log.info(f"Players in game: {self.players_in_game}")
         return True
 
-    def get_my_funds2(self):
-        self.get_players_funds(my_funds_only=True)
+    def get_my_funds2(self, i):
+        self.get_players_funds(player=i)
 
-    def get_players_funds(self, my_funds_only=False, skip=[]):
+    def get_players_funds(self, my_funds_only=False, skip=[], player=None):
         """
         Get funds of players
 
         Returns: list of floats
 
         """
-        if my_funds_only:
-            counter = 1
+        self.time_funds_start = datetime.datetime.utcnow()
+        if player is not None:
+            self.player_funds[player] = ocr(self.screenshot, 'player_funds_area', self.table_dict, str(player))
         else:
-            counter = self.total_players
-
-        self.player_funds = []
-        for i in range(counter):
-            if i in skip:
-                funds = 0
+            if my_funds_only:
+                counter = 1
             else:
-                funds = ocr(self.screenshot, 'player_funds_area', self.table_dict, str(i))
-            self.player_funds.append(funds)
-        log.info(f"Player funds: {self.player_funds}")
+                counter = self.total_players
+
+            # self.player_funds = [None for _ in range(self.total_players)]
+            for i in range(counter):
+                if i in skip:
+                    funds = 0
+                else:
+                    funds = ocr(self.screenshot, 'player_funds_area', self.table_dict, str(i))
+                # self.player_funds.append(funds)
+                self.player_funds[i] = ocr(self.screenshot, 'player_funds_area', self.table_dict, str(i))
+            log.info(f"Player funds: {self.player_funds}")
+        self.time_funds_end = datetime.datetime.utcnow()
+        log.info(f"Collapsed time for player funds: {self.time_funds_end - self.time_funds_start}")
         return True
 
     def other_players_names(self):

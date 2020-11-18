@@ -1,6 +1,6 @@
 """Helper functions."""
 # pylint: disable = ungrouped-imports, too-few-public-methods
-
+import configparser
 import datetime
 import logging
 import multiprocessing
@@ -58,7 +58,7 @@ class CustomConfigParser(metaclass=Singleton):
         if config_override_filename and not os.path.isfile(config_override_filename):
             raise ValueError("Unable to find config file {}".format(config_override_filename))
 
-        main_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'config.ini')
+        main_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../config.ini')
 
         self.config = ConfigParser(interpolation=ExtendedInterpolation())
         self.config.optionxform = str  # enforce case sensitivity on key
@@ -71,9 +71,11 @@ class CustomConfigParser(metaclass=Singleton):
 
 def get_config(config_override_filename=None):
     """Public accessor for config file."""
-    config = CustomConfigParser(config_override_filename)
-    return config.config
-
+    # config = CustomConfigParser(config_override_filename)
+    config = configparser.ConfigParser()
+    filename = os.path.join(get_dir('.'), 'config.ini')
+    config.read(filename)
+    return config
 
 def init_logger(screenlevel, filename=None, logdir=None, modulename=''):
     """
@@ -133,7 +135,7 @@ def init_logger(screenlevel, filename=None, logdir=None, modulename=''):
 
     # screen output formatter
     stream_handler.setFormatter(
-        logging.Formatter('%(levelname)s - %(message)s'))
+        logging.Formatter(' (%(threadName)-2s) %(levelname)s - %(message)s'))
     root.addHandler(stream_handler)
 
     mainlogger = logging.getLogger(modulename)
@@ -199,8 +201,8 @@ def get_multiprocessing_config():
 
     """
     config = get_config()
-    parallel = config.getboolean('MultiThreading', 'parallel')
-    cores = config.getint('MultiThreading', 'cores')
+    parallel = config.getboolean('MulitiProcessing', 'parallel')
+    cores = config.getint('MulitiProcessing', 'cores')
     num_cpus = multiprocessing.cpu_count()
     cores = max(1, min(cores, num_cpus - 1))
     return parallel, cores
@@ -224,6 +226,8 @@ def multi_threading(pool_fn, pool_args, disable_multiprocessing=False, dataframe
     """
     from multiprocessing.pool import ThreadPool
     parallel, cores = get_multiprocessing_config()
+    # parallel = True
+    # cores = 8
     log.debug("Start with parallel={} and cores={}, queue size={}".format(parallel, cores, len(pool_args)))
     if parallel and not disable_multiprocessing:
         threadpool = ThreadPool(cores)
@@ -234,6 +238,8 @@ def multi_threading(pool_fn, pool_args, disable_multiprocessing=False, dataframe
     else:
         res = [pool_fn(x) for x in pool_args]
     assert len(res) == len(pool_args)
+    threadpool.close()
+    threadpool.join()
     log.debug("Completed.")
     return res
 

@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 import os
 
-from poker.tools.helper import init_logger
+from poker.tools.helper import init_logger, get_config
 
 if not (platform == "linux" or platform == "linux2"):
     matplotlib.use('Qt5Agg')
@@ -198,9 +198,9 @@ class ThreadManager(threading.Thread):
 
         while True:
             # reload table if changed
-            config = ConfigObj("config.ini")
-            if table_scraper_name != config['table_scraper_name']:
-                table_scraper_name = config['table_scraper_name']
+            config = get_config()
+            if table_scraper_name != config['DEFAULT']['table_scraper_name']:
+                table_scraper_name = config['DEFAULT']['table_scraper_name']
                 log.info(f"Loading table scraper info for {table_scraper_name}")
                 table_dict = mongo.get_table(table_scraper_name)
 
@@ -226,6 +226,7 @@ class ThreadManager(threading.Thread):
                         t.check_for_checkbutton() and \
                         t.init_get_other_players_info() and \
                         t.get_other_player_status(p, h) and \
+                        t.get_players_funds() and \
                         t.get_my_funds(h, p) and \
                         t.get_other_player_funds(p) and \
                         t.get_other_player_pots() and \
@@ -245,7 +246,7 @@ class ThreadManager(threading.Thread):
                 # t.get_new_hand(mouse, h, p) and \
                 # t.check_fast_fold(h, p, mouse) and \
             if not self.gui_signals.pause_thread:
-                config = ConfigObj("config.ini")
+                config = get_config()
                 # m = run_montecarlo_wrapper(p, self.gui_signals, config, ui, t, self.game_logger, preflop_state, h)
                 self.gui_signals.signal_progressbar_increase.emit(20)
                 # d = Decision(t, h, p, self.game_logger)
@@ -272,7 +273,6 @@ class ThreadManager(threading.Thread):
                 log.info("___________________________________________________")
                 log.info(f"time to my cards: {t.time_my_cards_end - t.time_my_cards_start}")
                 log.info(f"time to table cards: {t.time_table_cards_end  - t.time_table_cards_start}")
-                log.info(f"time to other player funds: {t.time_other_funds - t.time_other_funds_start}")
                 log.info(f"time to other player pots: {t.time_other_pots_end - t.time_other_pots_start}")
                 log.info(f"time to new hands : {t.time_new_hand_end - t.time_new_hand_start}")
                 log.info(f"time to update UI {self.time_update_ui_end - self.time_update_ui_start}")

@@ -15,6 +15,7 @@ from poker.decisionmaker.montecarlo_python import MonteCarlo
 from .base import Table
 from ..scraper.recognize_table import TableScraper
 from poker.tools.helper import FullRandom
+
 log = logging.getLogger(__name__)
 
 
@@ -285,16 +286,14 @@ class TableScreenBased(Table):
         return True
 
     def get_other_player_funds(self, p):
-        self.time_other_funds_start = datetime.datetime.utcnow()
         if p.selected_strategy['gather_player_names'] == 1:
-            self.get_players_funds()
+            # self.get_players_funds()
             for i in range(1, self.total_players):
                 self.gui_signals.signal_status.emit(f"Check other players funds {i}")
                 self.gui_signals.signal_progressbar_increase.emit(1)
                 value = self.player_funds[i]
                 value = float(value) if value != '' else ''
                 self.other_players[i-1]['funds'] = value
-        self.time_other_funds = datetime.datetime.utcnow()
         return True
 
     def get_other_player_pots(self):
@@ -316,7 +315,9 @@ class TableScreenBased(Table):
                     self.other_players[n - 1]['pot'] = 0
 
                 log.debug("FINAL POT after regex: " + str(self.other_players[n - 1]))
+        # log.info(f"Current thread for player pots: {threading.currentThread().getName()}")
         self.time_other_pots_end = datetime.datetime.utcnow()
+        log.info(f"Collapsed time for player pots: {self.time_other_pots_end - self.time_other_pots_start }")
         return True
 
     def get_bot_pot(self, p):
@@ -403,9 +404,7 @@ class TableScreenBased(Table):
         self.gui_signals.signal_progressbar_increase.emit(1)
         self.get_dealer_position2()
         self.position_utg_plus = (self.total_players + 3 - self.dealer_position) % self.total_players
-
         log.info('Bot position is UTG+' + str(self.position_utg_plus))  # 0 mean bot is UTG
-
         if self.position_utg_plus == '':
             self.position_utg_plus = 0
             self.dealer_position = 3
@@ -461,7 +460,7 @@ class TableScreenBased(Table):
     def get_my_funds(self, h, p):
         self.gui_signals.signal_status.emit(f"Get my funds")
         self.gui_signals.signal_progressbar_increase.emit(1)
-        self.get_my_funds2()
+        # self.get_my_funds2()
         self.myFunds = self.player_funds[0]
         if self.myFunds != "":
             try:
