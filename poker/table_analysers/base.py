@@ -94,7 +94,7 @@ class Table(TableScraper):
         keyList = []
         x_value = []
 
-        if Fund == "game_number":  # Beim Game_Number auslesen stört der "." (Punkt), deshalb wird er hier weggelassen
+        if fund == "game_number":  # Beim Game_Number auslesen stört der "." (Punkt), deshalb wird er hier weggelassen
             values = number_values
 
         for x in values:
@@ -321,7 +321,7 @@ class Table(TableScraper):
 
         for n in range(5):  # n is absolute position of other player, 0 is player after bot
             i = (
-                        self.dealer_position + n + 3 - 2) % 5  # less myself as 0 is now first other player to my left and no longer myself
+                        self.dealer_position1 + n + 3 - 2) % 5  # less myself as 0 is now first other player to my left and no longer myself
             self.logger.debug("Go through pots to find raiser abs: {0} {1}".format(i, self.other_players[i]['pot']))
             if self.other_players[i]['pot'] != '':  # check if not empty (otherwise can't convert string)
                 if self.other_players[i]['pot'] > reference_pot:
@@ -333,9 +333,9 @@ class Table(TableScraper):
                         if self.other_players[i]['pot'] > first_raiser_pot:
                             second_raiser = int(i)
 
-        first_raiser_utg = self.get_utg_from_abs_pos(first_raiser, self.dealer_position)
+        first_raiser_utg = self.get_utg_from_abs_pos(first_raiser, self.dealer_position1)
         highest_raiser = np.nanmax([first_raiser, second_raiser])
-        second_raiser_utg = self.get_utg_from_abs_pos(second_raiser, self.dealer_position)
+        second_raiser_utg = self.get_utg_from_abs_pos(second_raiser, self.dealer_position1)
 
         first_possible_caller = int(self.big_blind_position_abs_op + 1) if np.isnan(highest_raiser) else int(
             highest_raiser + 1)
@@ -352,7 +352,7 @@ class Table(TableScraper):
                     first_caller = int(n)
                     break
 
-        first_caller_utg = self.get_utg_from_abs_pos(first_caller, self.dealer_position)
+        first_caller_utg = self.get_utg_from_abs_pos(first_caller, self.dealer_position1)
 
         # check for callers between bot and first raiser. If so, first raiser becomes second raiser and caller becomes first raiser
         first_possible_caller = 0
@@ -366,8 +366,8 @@ class Table(TableScraper):
                         not (self.other_players[n]['pot'] == ''):
                     second_raiser = first_raiser
                     first_raiser = n
-                    first_raiser_utg = self.get_utg_from_abs_pos(first_raiser, self.dealer_position)
-                    second_raiser_utg = self.get_utg_from_abs_pos(second_raiser, self.dealer_position)
+                    first_raiser_utg = self.get_utg_from_abs_pos(first_raiser, self.dealer_position1)
+                    second_raiser_utg = self.get_utg_from_abs_pos(second_raiser, self.dealer_position1)
                     break
 
         self.logger.debug("First raiser abs: " + str(first_raiser))

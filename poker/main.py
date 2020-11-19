@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 import os
 
-from poker.tools.helper import init_logger, get_config
+from poker.tools.helper import init_logger, get_config, multi_threading
 
 if not (platform == "linux" or platform == "linux2"):
     matplotlib.use('Qt5Agg')
@@ -186,7 +186,6 @@ class ThreadManager(threading.Thread):
         preflop_url = os.path.join('tools', 'preflop.xlsx')
         h.preflop_sheet = pd.read_excel(preflop_url, sheet_name=None)
 
-
         self.game_logger.clean_database()
 
         p = StrategyHandler()
@@ -211,40 +210,96 @@ class ThreadManager(threading.Thread):
 
             ready = False
             while (not ready):
+                    # time_start = datetime.datetime.utcnow()
                 p.read_strategy()
                 t = TableScreenBased(p, table_dict, self.gui_signals, self.game_logger, version)
-                # mouse = MouseMoverTableBased(table_dict)
-                # mouse.move_mouse_away_from_buttons_jump()
+                try:
+                    time_start = datetime.datetime.utcnow()
+                    # mouse = MouseMoverTableBased(table_dict)
+                    # mouse.move_mouse_away_from_buttons_jump()
 
-                ready = t.take_screenshot(True, p) and \
-                        t.get_top_left_corner(p) and \
-                        t.get_my_cards(h) and \
-                        t.get_table_cards(h) and \
-                        t.upload_collusion_wrapper(p, h) and \
-                        t.get_dealer_position() and \
-                        t.get_round_number(h) and \
-                        t.check_for_checkbutton() and \
-                        t.init_get_other_players_info() and \
-                        t.get_other_player_status(p, h) and \
-                        t.get_players_funds() and \
-                        t.get_my_funds(h, p) and \
-                        t.get_other_player_funds(p) and \
-                        t.get_other_player_pots() and \
-                        t.get_total_pot_value(h) and \
-                        t.get_round_pot_value(h) and \
-                        t.check_for_call() and \
-                        t.check_for_betbutton() and \
-                        t.check_for_allincall() and \
-                        t.get_current_call_value(p) and \
-                        t.get_current_bet_value(p) and \
-                        t.get_new_hand2(h, p)
-                # t.check_for_button()
-                # t.get_other_player_names(p) and \
-                # t.get_lost_everything(h, t, p, self.gui_signals) and \
-                # t.check_for_captcha(mouse) and \
-                # t.check_for_imback(mouse) and \
-                # t.get_new_hand(mouse, h, p) and \
-                # t.check_fast_fold(h, p, mouse) and \
+                    # ready = t.take_screenshot(True, p) and \
+                    #         t.get_top_left_corner(p) and \
+                    #         t.get_my_cards(h) and \
+                    #         t.get_table_cards(h) and \
+                    #         t.upload_collusion_wrapper(p, h) and \
+                    #         t.get_dealer_position() and \
+                    #         t.get_round_number(h) and \
+                    #         t.check_for_checkbutton() and \
+                    #         t.init_get_other_players_info() and \
+                    #         t.get_other_player_status(p, h) and \
+                    #         t.get_players_funds2() and \
+                    #         t.get_my_funds(h, p) and \
+                    #         t.get_other_player_funds(p) and \
+                    #         t.get_other_player_pots() and \
+                    #         t.get_total_pot_value(h) and \
+                    #         t.get_round_pot_value(h) and \
+                    #         t.check_for_call() and \
+                    #         t.check_for_betbutton() and \
+                    #         t.check_for_allincall() and \
+                    #         t.get_current_call_value(p) and \
+                    #         t.get_current_bet_value(p) and \
+                    #         t.get_new_hand2(h, p)
+                    # t.check_for_button()
+                    # t.get_other_player_names(p) and \
+                    # t.get_lost_everything(h, t, p, self.gui_signals) and \
+                    # t.check_for_captcha(mouse) and \
+                    # t.check_for_imback(mouse) and \
+                    # t.get_new_hand(mouse, h, p) and \
+                    # t.check_fast_fold(h, p, mouse) and \
+
+                    if t.take_screenshot(True, p) and t.get_top_left_corner(p) and t.check_for_button():
+                        multi_threading(t.get_player_pots_nn, [0, 1, 2, 3, 4, 5], disable_multiprocessing=False,
+                                        dataframe_mode=False)
+                        multi_threading(t.get_pots2, ['current_round_pot', 'total_pot_area'], disable_multiprocessing=False,
+                                        dataframe_mode=False)
+                        multi_threading(t.get_call_raise_value, ['raise_value', 'call_value'],
+                                        disable_multiprocessing=False,
+                                        dataframe_mode=False)
+                        multi_threading(t.get_player_funds, [0, 1, 2, 3, 4, 5], disable_multiprocessing=False,
+                                        dataframe_mode=False)
+                        multi_threading(t.is_template_in_search_area1, [{'name': 'raise_button', 'player': None},
+                                                                        {'name': 'call_button', 'player': None},
+                                                                        {'name': 'all_in_call_button', 'player': None},
+                                                                        {'name': 'check_button', 'player': None},
+                                                                        {'name': 'dealer_button', 'player': 0},
+                                                                        {'name': 'dealer_button', 'player': 1},
+                                                                        {'name': 'dealer_button', 'player': 2},
+                                                                        {'name': 'dealer_button', 'player': 3},
+                                                                        {'name': 'dealer_button', 'player': 4},
+                                                                        {'name': 'dealer_button', 'player': 5},
+                                                                        {'name': 'covered_card', 'player': 1},
+                                                                        {'name': 'covered_card', 'player': 2},
+                                                                        {'name': 'covered_card', 'player': 3},
+                                                                        {'name': 'covered_card', 'player': 4},
+                                                                        {'name': 'covered_card', 'player': 5}],
+                                        disable_multiprocessing=False,
+                                        dataframe_mode=False)
+
+                        ready = t.get_my_cards(h) and \
+                                t.get_table_cards(h) and \
+                                t.upload_collusion_wrapper(p, h) and \
+                                t.get_dealer_position() and \
+                                t.get_round_number(h) and \
+                                t.check_for_checkbutton() and \
+                                t.init_get_other_players_info() and \
+                                t.get_other_player_status(p, h) and \
+                                t.get_my_funds(h, p) and \
+                                t.get_other_player_funds(p) and \
+                                t.get_other_player_pots() and \
+                                t.get_total_pot_value(h) and \
+                                t.get_round_pot_value(h) and \
+                                t.check_for_call() and \
+                                t.check_for_betbutton() and \
+                                t.check_for_allincall() and \
+                                t.get_current_call_value(p) and \
+                                t.get_current_bet_value(p) and \
+                                t.get_new_hand2(h, p)
+                finally:
+                    time_end = datetime.datetime.utcnow()
+                    log.info("___________________________________________________")
+                    log.info(f"time to total record: {time_end - time_start}")
+
             if not self.gui_signals.pause_thread:
                 config = get_config()
                 # m = run_montecarlo_wrapper(p, self.gui_signals, config, ui, t, self.game_logger, preflop_state, h)
@@ -254,7 +309,7 @@ class ThreadManager(threading.Thread):
                 self.gui_signals.signal_progressbar_increase.emit(10)
                 if self.gui_signals.exit_thread: sys.exit()
 
-                self.update_most_gui_items(preflop_state, p, t, h, self.gui_signals)   # remove monte carlo
+                self.update_most_gui_items(preflop_state, p, t, h, self.gui_signals)  # remove monte carlo
                 # log.info(
                 #     "Equity: " + str(t.equity * 100) + "% -> " + str(int(t.assumedPlayers)) + " (" + str(
                 #         int(t.other_active_players)) + "-" + str(int(t.playersAhead)) + "+1) Plr")
@@ -269,14 +324,6 @@ class ThreadManager(threading.Thread):
                 #     mouse_target = 'Call2'
                 # mouse.mouse_action(mouse_target, t.tlc)
 
-                t.time_action_completed = datetime.datetime.utcnow()
-                log.info("___________________________________________________")
-                log.info(f"time to my cards: {t.time_my_cards_end - t.time_my_cards_start}")
-                log.info(f"time to table cards: {t.time_table_cards_end  - t.time_table_cards_start}")
-                log.info(f"time to other player pots: {t.time_other_pots_end - t.time_other_pots_start}")
-                log.info(f"time to new hands : {t.time_new_hand_end - t.time_new_hand_start}")
-                log.info(f"time to update UI {self.time_update_ui_end - self.time_update_ui_start}")
-                log.info(f"time to total record: {t.time_action_completed - t.timeout_start}")
 
                 filename = str(h.GameID) + "_" + str(t.gameStage) + "_" + str(h.round_number) + ".png"
                 log.debug("Saving screenshot: " + filename)

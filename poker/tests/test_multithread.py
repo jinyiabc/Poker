@@ -1,4 +1,5 @@
 import datetime
+from unittest import TestCase
 
 from poker.gui.gui_qt_logic import UIActionAndSignals, QObject
 from poker.tests import init_table
@@ -25,8 +26,8 @@ sys.path.insert(0, parentdir)
 from poker import main
 from poker.tools.mongo_manager import StrategyHandler, UpdateChecker, GameLogger, MongoManager
 
-logging.basicConfig(level=logging.INFO,
-                    format='(%(threadName)-10s) %(levelname)s %(message)s',
+logging.basicConfig(level=logging.DEBUG,
+                    format='(%(asctime)s)(%(threadName)-10s) %(message)s',
                     )
 
 
@@ -65,15 +66,6 @@ class TestmultiThread(threading.Thread):
 
 
 def run_test():
-    # config = configparser.ConfigParser()
-    # file = os.path.join(get_dir('.'), 'config.ini')
-    # config.read(file)
-    # parallel = config.getboolean('MultiThreading', 'parallel')
-    # cores = config.getint('MultiThreading', 'cores')
-    #dir = os.path.realpath(__file__)
-    # logging.debug('Starting  thread')
-
-    time_funds_start = datetime.datetime.utcnow()
     file = os.path.join(get_dir('tests', 'screenshots'), 'Capture3.png')
     LOG_FILENAME = 'testing.log'
     mongo = MongoManager()
@@ -88,17 +80,43 @@ def run_test():
     h.preflop_sheet = pd.read_excel('C:\\Users\\jinyi\\Desktop\\Poker\\poker\\tools\\preflop.xlsx', sheet_name=None)
     game_logger = GameLogger()
 
-    t = main.TableScreenBased(p, table_dict, gui_signals, game_logger, 0.0)
-    t.entireScreenPIL = Image.open(file)
-    t.get_top_left_corner(p)
-    t.get_dealer_position()
-    t.init_get_other_players_info()
-    # t.get_players_funds()
-    res = multi_threading(t.get_my_funds2, [0, 1, 2, 3, 4, 5], disable_multiprocessing=False, dataframe_mode=False)
-    logging.info(f"{t.player_funds}")
-    logging.info(f"{res}")
-    time_funds_end = datetime.datetime.utcnow()
-    logging.info(f"Collapsed time for player funds: {time_funds_end - time_funds_start}")
+    try:
+        time_funds_start = datetime.datetime.utcnow()
+        t = main.TableScreenBased(p, table_dict, gui_signals, game_logger, 0.0)
+        t.entireScreenPIL = Image.open(file)
+        t.get_top_left_corner(p)
+        # t.get_dealer_position()
+        t.init_get_other_players_info()
+
+        # # Use single thread
+        # t.get_player_pots()
+        # t.get_players_funds()
+
+        # Use Multithread
+        res1 = multi_threading(t.get_player_pots_nn, [0, 1, 2, 3, 4, 5], disable_multiprocessing=False,
+                               dataframe_mode=False)
+        res2 = multi_threading(t.get_player_funds, [0, 1, 2, 3, 4, 5], disable_multiprocessing=False,
+                               dataframe_mode=False)
+        res3 = multi_threading(t.is_template_in_search_area1, [{'name': 'raise_button', 'player': None},
+                                                               {'name': 'call_button', 'player': None},
+                                                               {'name': 'all_in_call_button', 'player': None},
+                                                               {'name': 'check_button', 'player': None},
+                                                               {'name': 'dealer_button', 'player': 0},
+                                                               {'name': 'dealer_button', 'player': 1},
+                                                               {'name': 'dealer_button', 'player': 2},
+                                                               {'name': 'dealer_button', 'player': 3},
+                                                               {'name': 'dealer_button', 'player': 4},
+                                                               {'name': 'dealer_button', 'player': 5}],
+                               disable_multiprocessing=False,
+                               dataframe_mode=False)
+        logging.info(f"{t.player_funds}")
+        logging.info(f"{t.player_pots}")
+        logging.info(f"{res2}")
+        logging.info(f"{res3}")
+    finally:
+        time_funds_end = datetime.datetime.utcnow()
+        logging.info(f"Collapsed time for player funds: {time_funds_end - time_funds_start}")
+
 
 if __name__ == '__main__':
     run_test()

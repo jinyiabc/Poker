@@ -17,7 +17,7 @@ import requests
 from configobj import ConfigObj
 from pymongo import MongoClient
 
-from poker.tools.helper import COMPUTER_NAME
+from poker.tools.helper import COMPUTER_NAME, get_config
 
 
 class UpdateChecker():
@@ -139,9 +139,9 @@ class StrategyHandler(object):
         if not 'minimum_bet_size' in self.selected_strategy: self.selected_strategy['minimum_bet_size'] = 3
 
     def read_strategy(self, strategy_override=''):
-        config = ConfigObj("config.ini")
+        config = get_config()
         #last_strategy = config['last_strategy']
-        last_strategy = 'Default'
+        last_strategy = config['DEFAULT']['last_strategy']
         self.current_strategy = last_strategy if strategy_override == '' else strategy_override
         try:
             cursor = self.mongodb.strategies.find({'Strategy': self.current_strategy})
