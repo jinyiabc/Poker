@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 import os
 
-from poker.tools.helper import init_logger, get_config, multi_threading
+from poker.tools.helper import init_logger, get_config, multi_threading, get_multiprocessing_config
 
 if not (platform == "linux" or platform == "linux2"):
     matplotlib.use('Qt5Agg')
@@ -249,16 +249,15 @@ class ThreadManager(threading.Thread):
                     # t.check_fast_fold(h, p, mouse) and \
 
                     if t.take_screenshot(True, p) and t.get_top_left_corner(p) and t.check_for_button():
-                        multi_threading(t.get_player_pots_nn, [0, 1, 2, 3, 4, 5], disable_multiprocessing=False,
-                                        dataframe_mode=False)
-                        multi_threading(t.get_pots2, ['current_round_pot', 'total_pot_area'], disable_multiprocessing=False,
-                                        dataframe_mode=False)
-                        multi_threading(t.get_call_raise_value, ['raise_value', 'call_value'],
-                                        disable_multiprocessing=False,
-                                        dataframe_mode=False)
-                        multi_threading(t.get_player_funds, [0, 1, 2, 3, 4, 5], disable_multiprocessing=False,
-                                        dataframe_mode=False)
-                        multi_threading(t.is_template_in_search_area1, [{'name': 'raise_button', 'player': None},
+                        from multiprocessing.pool import ThreadPool
+                        parallel, cores = get_multiprocessing_config()
+                        logging.info("Start with parallel={} and cores={}".format(parallel, cores))
+                        thread_pool = ThreadPool(cores)
+                        thread_pool.map(t.get_player_pots_nn, [0, 1, 2, 3, 4, 5])
+                        thread_pool.map(t.get_pots2, ['current_round_pot', 'total_pot_area'])
+                        thread_pool.map(t.get_call_raise_value, ['raise_value', 'call_value'])
+                        thread_pool.map(t.get_player_funds, [0, 1, 2, 3, 4, 5])
+                        thread_pool.map(t.is_template_in_search_area1, [{'name': 'raise_button', 'player': None},
                                                                         {'name': 'call_button', 'player': None},
                                                                         {'name': 'all_in_call_button', 'player': None},
                                                                         {'name': 'check_button', 'player': None},
@@ -272,9 +271,10 @@ class ThreadManager(threading.Thread):
                                                                         {'name': 'covered_card', 'player': 2},
                                                                         {'name': 'covered_card', 'player': 3},
                                                                         {'name': 'covered_card', 'player': 4},
-                                                                        {'name': 'covered_card', 'player': 5}],
-                                        disable_multiprocessing=False,
-                                        dataframe_mode=False)
+                                                                        {'name': 'covered_card', 'player': 5}])
+                        thread_pool.close()
+                        thread_pool.join()
+                        logging.info("Completed.")
 
                         ready = t.get_my_cards(h) and \
                                 t.get_table_cards(h) and \

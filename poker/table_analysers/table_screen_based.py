@@ -1,6 +1,7 @@
 import datetime
 import inspect
 import logging
+import os
 import re
 import sys
 import threading
@@ -14,7 +15,7 @@ from PIL import Image
 from poker.decisionmaker.montecarlo_python import MonteCarlo
 from .base import Table
 from ..scraper.recognize_table import TableScraper
-from poker.tools.helper import FullRandom
+from poker.tools.helper import FullRandom, get_dir
 
 log = logging.getLogger(__name__)
 
@@ -453,7 +454,7 @@ class TableScreenBased(Table):
             self.gui_signals.signal_status.emit("Unable to get round pot value")
             log.warning("unable to get round pot value")
             # self.round_pot_value = h.previous_round_pot_value
-            self.screenshot.save("pics/ErrRoundPotValue.png")
+            self.screenshot.save(os.path.join(get_dir('pics'), "ErrRoundPotValue.png"))
 
         self.gui_signals.signal_progressbar_increase.emit(5)
         return True
