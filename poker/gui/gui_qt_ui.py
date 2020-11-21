@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'GUI_QT_ui.ui'
+# Form implementation generated from reading ui file 'gui_qt_ui.ui'
 #
 # Created by: PyQt5 UI code generator 5.9.2
 #
@@ -459,6 +459,12 @@ class Ui_Pokerbot(object):
         self.open_chat.setFont(font)
         self.open_chat.setObjectName("open_chat")
         self.gridLayout.addWidget(self.open_chat, 0, 4, 1, 1)
+        self.HandHistory1 = QtWidgets.QPushButton(self.centralwidget)
+        self.HandHistory1.setObjectName("HandHistory1")
+        self.gridLayout.addWidget(self.HandHistory1, 1, 0, 1, 2)
+        self.HandHistory2 = QtWidgets.QPushButton(self.centralwidget)
+        self.HandHistory2.setObjectName("HandHistory2")
+        self.gridLayout.addWidget(self.HandHistory2, 1, 2, 1, 2)
         Pokerbot.setCentralWidget(self.centralwidget)
         self.statusbar = QtWidgets.QStatusBar(Pokerbot)
         self.statusbar.setEnabled(True)
@@ -514,6 +520,8 @@ class Ui_Pokerbot(object):
         self.button_table_setup.setText(_translate("Pokerbot", "Table Setup"))
         self.pushButton_help.setText(_translate("Pokerbot", "Documentation"))
         self.open_chat.setText(_translate("Pokerbot", "Telegram Chat"))
+        self.HandHistory1.setText(_translate("Pokerbot", "HandHistory1"))
+        self.HandHistory2.setText(_translate("Pokerbot", "HandHistory2"))
 
 
 if __name__ == "__main__":

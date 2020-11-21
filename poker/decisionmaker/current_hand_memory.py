@@ -8,6 +8,11 @@ import numpy as np
 
 
 class History:
+    handHistory = {
+        'histGameStage': '',
+        'hist_other_players': None
+    }
+
     def __init__(self):
         # keeps values of the last round
         self.previousPot = 0

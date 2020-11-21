@@ -2,6 +2,10 @@ from sys import platform
 
 import matplotlib
 
+from poker.decisionmaker.current_hand_memory import History
+from poker.gui.gui_qt_ui import Ui_Pokerbot
+from poker.gui.handhistory1 import Ui_Handhistory1
+
 if not (platform == "linux" or platform == "linux2"):
     matplotlib.use('Qt5Agg')
 from PyQt5.QtCore import *
@@ -19,7 +23,7 @@ from poker.gui.GUI_QT_ui_analyser import *
 from poker.gui.setup import *
 from poker.gui.help import *
 from poker.tools.vbox_manager import VirtualBoxController
-from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtWidgets import QMessageBox, QTableWidgetItem, QTableWidget
 import webbrowser
 from poker.decisionmaker.genetic_algorithm import *
 from poker.decisionmaker.curvefitting import *
@@ -76,6 +80,7 @@ class UIActionAndSignals(QObject):
 
     signal_update_strategy_sliders = QtCore.pyqtSignal(str)
     signal_open_setup = QtCore.pyqtSignal(object, object)
+    signal_hand_history = QtCore.pyqtSignal(object)
 
     def __init__(self, ui_main_window):
         self.logger = logging.getLogger('gui')
@@ -86,6 +91,9 @@ class UIActionAndSignals(QObject):
         self.p = StrategyHandler()
         self.p.read_strategy()
         p = self.p
+
+        self.h = History()
+        h = self.h.handHistory
 
         self.pause_thread = True
         self.exit_thread = False
@@ -182,6 +190,7 @@ class UIActionAndSignals(QObject):
         self.signal_curve_chart_update2.connect(self.gui_curve.update_lines)
         self.signal_pie_chart_update.connect(self.gui_pie.drawfigure)
         self.signal_open_setup.connect(lambda: self.open_setup(p, l))
+        self.signal_hand_history.connect(lambda: self.update_hand_history(h))
 
         ui_main_window.button_genetic_algorithm.clicked.connect(lambda: self.open_genetic_algorithm(p, l))
         ui_main_window.button_log_analyser.clicked.connect(lambda: self.open_strategy_analyser(p, l))
@@ -193,6 +202,7 @@ class UIActionAndSignals(QObject):
         ui_main_window.pushButton_help.clicked.connect(lambda: self.open_help(p, l))
         ui_main_window.open_chat.clicked.connect(lambda: self.open_chat())
         ui_main_window.button_table_setup.clicked.connect(lambda: self.open_table_setup())
+        ui_main_window.HandHistory1.clicked.connect(lambda: self.show_hand_history())
 
         self.signal_update_strategy_sliders.connect(lambda: self.update_strategy_editor_sliders(p.current_strategy))
 
@@ -366,6 +376,37 @@ class UIActionAndSignals(QObject):
         self.ui_setup_table.setupUi(self.table_setup_form)
         self.table_setup_form.show()
         gui_signals = TableSetupActionAndSignals(self.ui_setup_table)
+
+    def show_hand_history(self):
+        self.setup_form1 = QtWidgets.QWidget()
+        self.ui_setup1 = Ui_Handhistory1()
+        self.ui_setup1.setupUi(self.setup_form1)
+        self.setup_form1.show()
+
+        # self.tableWidget = self.ui_setup1.tableWidget
+        # self.tableWidget.setItem(0, 0, QTableWidgetItem('CHECK'))
+        # self.tableWidget.setItem(1, 0, QTableWidgetItem('FOLD'))
+        # self.tableWidget.setItem(2, 0, QTableWidgetItem('CHECK'))
+        # self.tableWidget.setItem(3, 0, QTableWidgetItem('CHECK'))
+        # self.tableWidget.setItem(4, 0, QTableWidgetItem('CHECK'))
+
+    def update_hand_history(self, h):
+        self.tableWidget = self.ui_setup1.tableWidget
+        if h['histGameStage'] == 'Flop':
+            gameStage = 1
+        elif h['histGameStage'] == 'PreFlop':
+            gameStage = 0
+        elif h['histGameStage'] == 'Turn':
+            gameStage = 2
+        else:
+            gameStage = 3
+        other_players = h['hist_other_players']
+        for i in range(5):
+            self.tableWidget.setItem(i, gameStage, QTableWidgetItem(str(other_players[i]['abs_position'])))  #  other_players[i]['abs_position']
+            # self.tableWidget.setItem(1, 0, QTableWidgetItem('FOLD'))
+            # self.tableWidget.setItem(2, 0, QTableWidgetItem('CHECK'))
+            # self.tableWidget.setItem(3, 0, QTableWidgetItem('CHECK'))
+            # self.tableWidget.setItem(4, 0, QTableWidgetItem('CHECK'))
 
     def open_setup(self, p, l):
         self.setup_form = QtWidgets.QWidget()
@@ -967,9 +1008,16 @@ class ScatterPlot(FigureCanvas):
 if __name__ == "__main__":
     import sys
 
+    # app = QtWidgets.QApplication(sys.argv)
+    # editor_form = QtWidgets.QWidget()
+    # ui = Ui_editor_form()
+    # ui.setupUi(editor_form)
+    # editor_form.show()
+    # sys.exit(app.exec_())
+
     app = QtWidgets.QApplication(sys.argv)
-    editor_form = QtWidgets.QWidget()
-    ui = Ui_editor_form()
-    ui.setupUi(editor_form)
-    editor_form.show()
+    Pokerbot = QtWidgets.QMainWindow()
+    ui = Ui_Pokerbot()
+    ui.setupUi(Pokerbot)
+    Pokerbot.show()
     sys.exit(app.exec_())
