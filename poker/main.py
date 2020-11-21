@@ -224,6 +224,7 @@ class ThreadManager(threading.Thread):
 
             ready = False
             while (not ready):
+                    # time_start = datetime.datetime.utcnow()
                 p.read_strategy()
                 t = TableScreenBased(p, table_dict, self.gui_signals, self.game_logger, version)
                 try:
