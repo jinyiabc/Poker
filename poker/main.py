@@ -164,7 +164,9 @@ class ThreadManager(threading.Thread):
         # gui_signals.signal_label_number_update.emit('initiative', str(t.other_player_has_initiative))
         gui_signals.signal_label_number_update.emit('round_pot', str(np.round(t.round_pot_value, 2)))
         # gui_signals.signal_label_number_update.emit('pot_multiple', str(np.round(d.pot_multiple, 2)))
-
+        h.handHistory['histGameStage'] = t.gameStage
+        h.handHistory['hist_other_players'] = t.other_players
+        gui_signals.signal_hand_history.emit(h.handHistory)
         # if t.gameStage != 'PreFlop' and p.selected_strategy['use_relative_equity']:
         #     gui_signals.signal_label_number_update.emit('relative_equity',
         #                                                 str(np.round(t.relative_equity, 2) * 100) + "%")
@@ -222,7 +224,6 @@ class ThreadManager(threading.Thread):
 
             ready = False
             while (not ready):
-                    # time_start = datetime.datetime.utcnow()
                 p.read_strategy()
                 t = TableScreenBased(p, table_dict, self.gui_signals, self.game_logger, version)
                 try:
