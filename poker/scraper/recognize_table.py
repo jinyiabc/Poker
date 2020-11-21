@@ -15,7 +15,6 @@ class TableScraper:
     def __init__(self, table_dict):
         self.table_dict = table_dict
         self.screenshot = None
-
         self.total_players = 6
         self.my_cards = None
         self.table_cards = None

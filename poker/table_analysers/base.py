@@ -8,7 +8,7 @@ import numpy as np
 import pytesseract
 from PIL import Image, ImageFilter
 from configobj import ConfigObj
-
+import matplotlib.pyplot as plt
 from poker.decisionmaker.genetic_algorithm import GeneticAlgorithm
 from poker.scraper.recognize_table import TableScraper
 from poker.tools.helper import get_config
@@ -52,6 +52,39 @@ class Table(TableScraper):
                 # gui_signals.signal_open_setup.emit(p,L)
                 self.take_screenshot2()
                 self.entireScreenPIL = self.screenshot
+
+        self.gui_signals.signal_status.emit(str(p.current_strategy))
+        self.gui_signals.signal_progressbar_increase.emit(5)
+        return True
+
+    def take_screenshot1(self, initial, pos, p):
+        if initial:
+            self.gui_signals.signal_status.emit("")
+            self.gui_signals.signal_progressbar_reset.emit()
+            if self.gui_signals.exit_thread == True: sys.exit()
+            if self.gui_signals.pause_thread == True:
+                while self.gui_signals.pause_thread == True:
+                    time.sleep(.2)
+                    if self.gui_signals.exit_thread == True: sys.exit()
+
+        time.sleep(0.1)
+        config = get_config()
+        control = config['DEFAULT']['control']
+        if control == 'Direct mouse control':
+            self.take_screenshot2()
+            self.entireScreenPIL = self.screenshot
+
+        else:
+            try:
+                vb = VirtualBoxController()
+                self.entireScreenPIL = vb.get_screenshot_vbox()
+                self.logger.debug("Screenshot taken from virtual machine")
+            except:
+                self.logger.warning("No virtual machine found. Press SETUP to re initialize the VM controller")
+                # gui_signals.signal_open_setup.emit(p,L)
+                self.take_screenshot2()
+                self.entireScreenPIL = self.screenshot
+        self.entireScreenPIL = self.entireScreenPIL.crop((pos[0], pos[1], pos[0] + 1000, pos[1] + 700))
 
         self.gui_signals.signal_status.emit(str(p.current_strategy))
         self.gui_signals.signal_progressbar_increase.emit(5)

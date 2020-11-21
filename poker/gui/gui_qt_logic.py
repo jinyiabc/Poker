@@ -2,6 +2,7 @@ from sys import platform
 
 import matplotlib
 
+from poker.gui.gui_qt_ui import Ui_Pokerbot
 from poker.tools.helper import get_config
 
 if not (platform == "linux" or platform == "linux2"):
@@ -969,9 +970,19 @@ class ScatterPlot(FigureCanvas):
 if __name__ == "__main__":
     import sys
 
+    # app = QtWidgets.QApplication(sys.argv)
+    # editor_form = QtWidgets.QWidget()
+    # ui = Ui_editor_form()
+    # ui.setupUi(editor_form)
+    # editor_form.show()
+    # sys.exit(app.exec_())
+
     app = QtWidgets.QApplication(sys.argv)
-    editor_form = QtWidgets.QWidget()
-    ui = Ui_editor_form()
-    ui.setupUi(editor_form)
-    editor_form.show()
+    MainWindow = QtWidgets.QMainWindow()
+    ui = Ui_Pokerbot()
+    ui.setupUi(MainWindow)
+    MainWindow.setWindowIcon(QtGui.QIcon('icon.ico'))
+    MainWindow.show()
     sys.exit(app.exec_())
+
+

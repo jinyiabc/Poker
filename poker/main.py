@@ -48,7 +48,7 @@ class ThreadManager(threading.Thread):
         self.name = name
         self.counter = counter
         self.loger = logging.getLogger('main')
-
+        self.pos = None
         self.game_logger = GameLogger()
 
     # def update_most_gui_items(self, preflop_state, p, m, t, d, h, gui_signals):
@@ -114,7 +114,7 @@ class ThreadManager(threading.Thread):
     #                                                 t.maxValue_call, t.maxValue_bet,
     #                                                 t.maxEquityCall, t.max_X, t.maxEquityBet)
 
-    def update_most_gui_items(self, preflop_state, p, t, h, gui_signals):
+    def update_most_gui_items(self, preflop_state, p, t, h, counter, gui_signals):
         self.time_update_ui_start = datetime.datetime.utcnow()
         try:
             sheet_name = t.preflop_sheet_name
@@ -149,6 +149,14 @@ class ThreadManager(threading.Thread):
         # gui_signals.signal_label_number_update.emit('collusion_cards', str(m.collusion_cards))
         gui_signals.signal_label_number_update.emit('mycards', str(t.mycards))
         gui_signals.signal_label_number_update.emit('tablecards', str(t.cardsOnTable))
+
+        if counter == 1:
+            gui_signals.signal_label_number_update.emit('mycard_1', str(t.mycards))
+            gui_signals.signal_label_number_update.emit('tablecard_1', str(t.cardsOnTable))
+        elif counter == 2:
+            gui_signals.signal_label_number_update.emit('mycard_2', str(t.mycards))
+            gui_signals.signal_label_number_update.emit('tablecard_2', str(t.cardsOnTable))
+
         gui_signals.signal_label_number_update.emit('opponent_range', str(range) + str(range2))
         # gui_signals.signal_label_number_update.emit('mincallequity', str(np.round(t.minEquityCall, 2) * 100) + "%")
         # gui_signals.signal_label_number_update.emit('minbetequity', str(np.round(t.minEquityBet, 2) * 100) + "%")
@@ -187,7 +195,11 @@ class ThreadManager(threading.Thread):
         h.preflop_sheet = pd.read_excel(preflop_url, sheet_name=None)
 
         self.game_logger.clean_database()
-
+        if self.counter == 1:
+            self.pos = (1500, 0)
+        elif self.counter == 2:
+            self.pos = (1500, 700)
+        logging.info(f'starting top left corner: {self.pos}')
         p = StrategyHandler()
         p.read_strategy()
 
@@ -248,7 +260,7 @@ class ThreadManager(threading.Thread):
                     # t.get_new_hand(mouse, h, p) and \
                     # t.check_fast_fold(h, p, mouse) and \
 
-                    if t.take_screenshot(True, p) and t.get_top_left_corner(p) and t.check_for_button():
+                    if t.take_screenshot1(True, self.pos, p) and t.get_top_left_corner(p) and t.check_for_button():
                         from multiprocessing.pool import ThreadPool
                         parallel, cores = get_multiprocessing_config()
                         logging.info("Start with parallel={} and cores={}".format(parallel, cores))
@@ -309,7 +321,7 @@ class ThreadManager(threading.Thread):
                 self.gui_signals.signal_progressbar_increase.emit(10)
                 if self.gui_signals.exit_thread: sys.exit()
 
-                self.update_most_gui_items(preflop_state, p, t, h, self.gui_signals)  # remove monte carlo
+                self.update_most_gui_items(preflop_state, p, t, h, self.counter, self.gui_signals)  # remove monte carlo
                 # log.info(
                 #     "Equity: " + str(t.equity * 100) + "% -> " + str(int(t.assumedPlayers)) + " (" + str(
                 #         int(t.other_active_players)) + "-" + str(int(t.playersAhead)) + "+1) Plr")
@@ -327,8 +339,8 @@ class ThreadManager(threading.Thread):
 
                 filename = str(h.GameID) + "_" + str(t.gameStage) + "_" + str(h.round_number) + ".png"
                 log.debug("Saving screenshot: " + filename)
-                pil_image = t.crop_image(t.entireScreenPIL, t.tlc[0], t.tlc[1], t.tlc[0] + 950, t.tlc[1] + 650)
-                pil_image.save("log/screenshots/" + filename)
+                # pil_image = t.crop_image(t.entireScreenPIL, t.tlc[0], t.tlc[1], t.tlc[0] + 950, t.tlc[1] + 650)
+                # pil_image.save("log/screenshots/" + filename)
 
                 self.gui_signals.signal_status.emit("Logging data")
 
@@ -395,7 +407,9 @@ def run_poker():
     gui_signals = UIActionAndSignals(ui)
 
     t1 = ThreadManager(1, "Thread-1", 1, gui_signals)
+    t2 = ThreadManager(2, "Thread-2", 2, gui_signals)
     t1.start()
+    t2.start()
 
     MainWindow.show()
     try:

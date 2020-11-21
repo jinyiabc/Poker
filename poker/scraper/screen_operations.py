@@ -35,12 +35,12 @@ def find_template_on_screen(template, screenshot, threshold):
     count = 0
     points = []
     for pt in zip(*loc[::-1]):
-        # cv2.rectangle(img, pt, (pt[0] + w, pt[1] + h), (0,0,255), 2)
+        # cv2.rectangle(screenshot, pt, (pt[0] + 20, pt[1] + 20), (0,0,255), 2)
         count += 1
         points.append(pt)
     # plt.subplot(121),plt.imshow(res)
-    # plt.subplot(122),plt.imshow(img,cmap = 'jet')
-    # plt.imshow(img, cmap = 'gray', interpolation = 'bicubic')
+    # plt.subplot(122),plt.imshow(screenshot,cmap = 'jet')
+    # plt.imshow(screenshot, cmap = 'gray', interpolation = 'bicubic')
     # plt.show()
     return count, points, bestFit, min_val
 
@@ -224,15 +224,15 @@ def take_screenshot(virtual_box=False):
     return screenshot
 
 
-def crop_screenshot_with_topleft_corner(original_screenshot, topleft_corner):
+def crop_screenshot_with_topleft_corner(original_screenshot, topleft_corner, cropped_screenshot=None):
     log.debug("Cropping top left corner")
     img = cv2.cvtColor(np.array(original_screenshot), cv2.COLOR_BGR2RGB)
     count, points, bestfit, minimum_value = find_template_on_screen(topleft_corner, img, 0.01)
-
     if count == 1:
-        tlc = points[0]
-        log.debug(f"Found to left corner at {tlc}")
-        cropped_screenshot = original_screenshot.crop((tlc[0], tlc[1], tlc[0] + 800, tlc[1] + 600))
+        for i in range(count):
+            tlc = points[i]
+            log.debug(f"Found to left corner at {tlc}")
+            cropped_screenshot = original_screenshot.crop((tlc[0], tlc[1], tlc[0] + 800, tlc[1] + 600))
         return cropped_screenshot, tlc
     else:
         log.warning("No top left corner found")
